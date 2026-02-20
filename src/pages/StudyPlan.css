@@ -1,0 +1,171 @@
+.study-plan-page {}
+
+.study-plan-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+}
+
+/* Calendar Sidebar */
+.plan-calendar-sidebar {
+    padding: 20px;
+    position: sticky;
+    top: calc(var(--topbar-height) + 32px);
+    align-self: flex-start;
+}
+
+.plan-calendar-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.plan-calendar-days {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.plan-calendar-day {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    text-align: left;
+    transition: all var(--transition-fast);
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.plan-calendar-day:hover {
+    background: var(--bg-page);
+}
+
+.plan-calendar-day-active {
+    background: rgba(79, 70, 229, 0.08);
+    color: var(--color-indigo);
+    font-weight: 600;
+}
+
+.plan-cal-day-name {
+    font-weight: 600;
+    min-width: 50px;
+}
+
+.plan-cal-day-info {
+    font-size: 0.75rem;
+    flex: 1;
+}
+
+.plan-exam-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    margin-top: 16px;
+    background: rgba(79, 70, 229, 0.06);
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    color: var(--color-indigo);
+    font-weight: 600;
+}
+
+/* Day Detail */
+.plan-day-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.plan-day-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.plan-day-detail-header h2 {
+    font-size: 1.3rem;
+    color: var(--color-indigo);
+}
+
+.plan-total-time {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-light);
+}
+
+.plan-detail-item {
+    padding: 20px;
+}
+
+.plan-detail-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.plan-detail-topic {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.plan-detail-icon {
+    color: var(--color-indigo);
+}
+
+.plan-detail-topic h3 {
+    font-size: 1rem;
+}
+
+.plan-detail-duration {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(79, 70, 229, 0.06);
+    border-radius: var(--radius-full);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-indigo);
+}
+
+.plan-detail-reason {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(6, 182, 212, 0.05);
+    border-radius: var(--radius-sm);
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.plan-detail-reason svg {
+    color: var(--color-teal);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+    .study-plan-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .plan-calendar-sidebar {
+        position: static;
+    }
+}

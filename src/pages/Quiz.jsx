@@ -1,0 +1,245 @@
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { mockTopics, mockSubjects, mockQuiz } from '../lib/mockData';
+import {
+    CheckCircle2, XCircle, ArrowRight, Trophy,
+    Clock, BookOpen, ChevronRight, RotateCcw
+} from 'lucide-react';
+import './Quiz.css';
+
+export default function Quiz() {
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+
+    // States
+    const [stage, setStage] = useState('select'); // select, quiz, result
+    const [selectedTopic, setSelectedTopic] = useState(null);
+    const [questions, setQuestions] = useState([]);
+    const [currentQ, setCurrentQ] = useState(0);
+    const [answers, setAnswers] = useState([]);
+    const [selectedAnswer, setSelectedAnswer] = useState(null);
+    const [showCorrect, setShowCorrect] = useState(false);
+    const [score, setScore] = useState(0);
+    const [timeLeft, setTimeLeft] = useState(30);
+    const [allTopics, setAllTopics] = useState([]);
+
+    useEffect(() => {
+        // If coming from subject detail with a topic pre-selected
+        const topicId = searchParams.get('topicId');
+        const topicName = searchParams.get('topicName');
+        if (topicId && topicName) {
+            startQuiz({ id: topicId, name: topicName });
+        }
+        // Load all topics for selection
+        setAllTopics(mockTopics.getAll());
+    }, []);
+
+    // Timer
+    useEffect(() => {
+        if (stage !== 'quiz' || showCorrect) return;
+        if (timeLeft <= 0) {
+            handleAnswer(-1);
+            return;
+        }
+        const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [timeLeft, stage, showCorrect]);
+
+    const startQuiz = (topic) => {
+        setSelectedTopic(topic);
+        const qs = mockQuiz.getQuestions(topic.name);
+        setQuestions(qs.slice(0, 5));
+        setCurrentQ(0);
+        setAnswers([]);
+        setSelectedAnswer(null);
+        setShowCorrect(false);
+        setTimeLeft(30);
+        setStage('quiz');
+    };
+
+    const handleAnswer = (answerIdx) => {
+        setSelectedAnswer(answerIdx);
+        setShowCorrect(true);
+        const isCorrect = answerIdx === questions[currentQ].answer;
+        setAnswers([...answers, { selected: answerIdx, correct: questions[currentQ].answer, isCorrect }]);
+
+        setTimeout(() => {
+            if (currentQ < questions.length - 1) {
+                setCurrentQ(c => c + 1);
+                setSelectedAnswer(null);
+                setShowCorrect(false);
+                setTimeLeft(30);
+            } else {
+                // Calculate score
+                const totalCorrect = [...answers, { isCorrect }].filter(a => a.isCorrect).length;
+                const accuracy = Math.round((totalCorrect / questions.length) * 100);
+                setScore(accuracy);
+
+                // Record attempt
+                mockQuiz.recordAttempt({
+                    topic_id: selectedTopic.id,
+                    accuracy
+                });
+
+                setStage('result');
+            }
+        }, 1200);
+    };
+
+    // ---- Select Screen ----
+    if (stage === 'select') {
+        const subjects = mockSubjects.getAll();
+
+        return (
+            <div className="quiz-page">
+                <div className="page-header">
+                    <div>
+                        <h1 className="page-title">Take a Quiz</h1>
+                        <p className="page-subtitle">Select a topic to test your knowledge</p>
+                    </div>
+                </div>
+
+                {subjects.map(subject => {
+                    const subTopics = allTopics.filter(t => t.subject_id === subject.id);
+                    if (subTopics.length === 0) return null;
+                    return (
+                        <div key={subject.id} className="quiz-subject-group">
+                            <h3 className="quiz-subject-name">{subject.name}</h3>
+                            <div className="quiz-topic-grid">
+                                {subTopics.map(topic => (
+                                    <button
+                                        key={topic.id}
+                                        className="quiz-topic-card card"
+                                        onClick={() => startQuiz(topic)}
+                                    >
+                                        <BookOpen size={20} className="quiz-topic-icon" />
+                                        <span className="quiz-topic-name">{topic.name}</span>
+                                        <span className="quiz-topic-mastery">{topic.mastery_score}% mastery</span>
+                                        <ChevronRight size={16} className="quiz-topic-arrow" />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
+    // ---- Quiz Screen ----
+    if (stage === 'quiz') {
+        const question = questions[currentQ];
+        return (
+            <div className="quiz-page">
+                <div className="quiz-active-header">
+                    <div className="quiz-topic-label">
+                        <BookOpen size={16} />
+                        {selectedTopic.name}
+                    </div>
+                    <div className="quiz-progress-info">
+                        <span>Question {currentQ + 1} of {questions.length}</span>
+                        <div className={`quiz-timer ${timeLeft <= 10 ? 'quiz-timer-warn' : ''}`}>
+                            <Clock size={14} />
+                            {timeLeft}s
+                        </div>
+                    </div>
+                </div>
+
+                {/* Progress Dots */}
+                <div className="quiz-dots">
+                    {questions.map((_, i) => (
+                        <div
+                            key={i}
+                            className={`quiz-dot ${i < currentQ ? (answers[i]?.isCorrect ? 'quiz-dot-correct' : 'quiz-dot-wrong') :
+                                    i === currentQ ? 'quiz-dot-current' : ''
+                                }`}
+                        />
+                    ))}
+                </div>
+
+                {/* Question Card */}
+                <div className="quiz-question-card card animate-fade-in" key={currentQ}>
+                    <h2 className="quiz-question-text">{question.q}</h2>
+
+                    <div className="quiz-options">
+                        {question.options.map((option, idx) => {
+                            let optClass = 'quiz-option';
+                            if (showCorrect) {
+                                if (idx === question.answer) optClass += ' quiz-option-correct';
+                                else if (idx === selectedAnswer) optClass += ' quiz-option-wrong';
+                            } else if (idx === selectedAnswer) {
+                                optClass += ' quiz-option-selected';
+                            }
+
+                            return (
+                                <button
+                                    key={idx}
+                                    className={optClass}
+                                    onClick={() => !showCorrect && handleAnswer(idx)}
+                                    disabled={showCorrect}
+                                >
+                                    <span className="quiz-option-letter">{String.fromCharCode(65 + idx)}</span>
+                                    <span className="quiz-option-text">{option}</span>
+                                    {showCorrect && idx === question.answer && <CheckCircle2 size={18} />}
+                                    {showCorrect && idx === selectedAnswer && idx !== question.answer && <XCircle size={18} />}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ---- Result Screen ----
+    if (stage === 'result') {
+        const updatedTopic = mockTopics.getById(selectedTopic.id);
+        const correctCount = answers.filter(a => a.isCorrect).length;
+
+        return (
+            <div className="quiz-page">
+                <div className="quiz-result card animate-scale">
+                    <div className="quiz-result-icon">
+                        {score >= 80 ? '🏆' : score >= 60 ? '👍' : score >= 40 ? '📚' : '💪'}
+                    </div>
+
+                    <h2 className="quiz-result-title">
+                        {score >= 80 ? 'Excellent!' : score >= 60 ? 'Good Job!' : score >= 40 ? 'Keep Practicing' : 'Don\'t Give Up!'}
+                    </h2>
+
+                    <div className="quiz-result-score">
+                        <span className="quiz-result-number">{score}%</span>
+                        <span className="quiz-result-label">Accuracy</span>
+                    </div>
+
+                    <div className="quiz-result-stats">
+                        <div className="quiz-result-stat">
+                            <CheckCircle2 size={16} color="var(--color-green)" />
+                            <span>{correctCount} Correct</span>
+                        </div>
+                        <div className="quiz-result-stat">
+                            <XCircle size={16} color="var(--color-red)" />
+                            <span>{questions.length - correctCount} Wrong</span>
+                        </div>
+                    </div>
+
+                    <div className="quiz-result-mastery">
+                        <span>Updated Mastery: <strong>{updatedTopic?.mastery_score || 0}%</strong></span>
+                    </div>
+
+                    <div className="quiz-result-actions">
+                        <button className="btn btn-primary" onClick={() => startQuiz(selectedTopic)}>
+                            <RotateCcw size={16} /> Retry
+                        </button>
+                        <button className="btn btn-secondary" onClick={() => { setStage('select'); setAllTopics(mockTopics.getAll()); }}>
+                            <BookOpen size={16} /> Other Topics
+                        </button>
+                        <Link to="/" className="btn btn-ghost">
+                            Dashboard <ArrowRight size={16} />
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+}

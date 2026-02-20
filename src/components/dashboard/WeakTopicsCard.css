@@ -1,0 +1,56 @@
+.weak-topics-card {}
+
+.weak-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.weak-empty-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.weak-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.weak-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    background: rgba(239, 68, 68, 0.04);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--color-red);
+}
+
+.weak-item-icon {
+    color: var(--color-orange);
+}
+
+.weak-item-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.weak-item-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.weak-item-score {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--color-red);
+}
+
+.weak-progress {
+    height: 6px;
+}

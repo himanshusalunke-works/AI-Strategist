@@ -1,0 +1,81 @@
+-- ============================================
+-- AI Study Strategist – Database Schema
+-- Run this in your Supabase SQL Editor
+-- ============================================
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ---- Subjects ----
+CREATE TABLE IF NOT EXISTS subjects (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  exam_date DATE NOT NULL,
+  daily_study_hours INTEGER DEFAULT 3,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ---- Topics ----
+CREATE TABLE IF NOT EXISTS topics (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  mastery_score INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ---- Quiz Attempts ----
+CREATE TABLE IF NOT EXISTS quiz_attempts (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  topic_id UUID REFERENCES topics(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  accuracy INTEGER NOT NULL CHECK (accuracy >= 0 AND accuracy <= 100),
+  attempted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ---- Schedules ----
+CREATE TABLE IF NOT EXISTS schedules (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE NOT NULL,
+  schedule_data JSONB NOT NULL,
+  generated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- Row Level Security (RLS)
+-- ============================================
+
+ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE topics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quiz_attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE schedules ENABLE ROW LEVEL SECURITY;
+
+-- Subjects: users can only see/modify their own
+CREATE POLICY "Users manage own subjects" ON subjects
+  FOR ALL USING (auth.uid() = user_id);
+
+-- Topics: users can manage topics of their subjects
+CREATE POLICY "Users manage own topics" ON topics
+  FOR ALL USING (
+    subject_id IN (SELECT id FROM subjects WHERE user_id = auth.uid())
+  );
+
+-- Quiz Attempts: users can manage their own attempts
+CREATE POLICY "Users manage own quiz attempts" ON quiz_attempts
+  FOR ALL USING (auth.uid() = user_id);
+
+-- Schedules: users can manage their own schedules
+CREATE POLICY "Users manage own schedules" ON schedules
+  FOR ALL USING (auth.uid() = user_id);
+
+-- ============================================
+-- Indexes for Performance
+-- ============================================
+
+CREATE INDEX IF NOT EXISTS idx_subjects_user ON subjects(user_id);
+CREATE INDEX IF NOT EXISTS idx_topics_subject ON topics(subject_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_topic ON quiz_attempts(topic_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user ON quiz_attempts(user_id);
+CREATE INDEX IF NOT EXISTS idx_schedules_subject ON schedules(subject_id);
