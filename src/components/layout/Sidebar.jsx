@@ -20,7 +20,7 @@ const navItems = [
     { to: '/quiz', icon: FileQuestion, label: 'Quiz' },
     { to: '/study-plan', icon: Calendar, label: 'Study Plan' },
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },
-    { to: '/settings', icon: Settings, label: 'Settings' },
+    { to: '/settings', icon: Settings, label: 'Profile' },
 ];
 
 export default function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse }) {
@@ -76,6 +76,9 @@ export default function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggle
                         <span className="sidebar-icon"><LogOut size={20} /></span>
                         {!collapsed && <span>Log Out</span>}
                     </button>
+                    {!collapsed && (
+                        <div className="sidebar-version">AI Strategist · v1.0</div>
+                    )}
                 </div>
                 </div>
 

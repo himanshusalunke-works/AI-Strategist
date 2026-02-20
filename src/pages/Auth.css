@@ -65,7 +65,7 @@
 
 /* Auth Container */
 .auth-container {
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--bg-card);
     backdrop-filter: blur(20px);
     border-radius: var(--radius-xl);
     padding: 48px 40px;

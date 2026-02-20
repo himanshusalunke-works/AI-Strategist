@@ -1,5 +1,5 @@
 .settings-page {
-    max-width: 640px;
+    width: 100%;
 }
 
 .settings-card {
@@ -10,38 +10,219 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .settings-card-header h3 {
     font-size: 1.05rem;
+    flex: 1;
+}
+
+.settings-header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 .settings-desc {
     font-size: 0.88rem;
     color: var(--text-secondary);
     line-height: 1.6;
-    margin-bottom: 16px;
 }
 
 .settings-field {
-    margin-bottom: 14px;
+    margin-bottom: 4px;
 }
 
 .settings-field label {
     display: block;
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: var(--text-secondary);
-    margin-bottom: 6px;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
-.settings-field .input-field {
+.settings-field .input-field,
+.settings-field select.input-field {
     width: 100%;
+}
+
+.settings-readonly {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    padding: 10px 2px;
+    border-bottom: 1px solid var(--border-card);
+    min-height: 40px;
+}
+
+.settings-readonly-muted {
+    color: var(--text-secondary);
+}
+
+.settings-placeholder {
+    color: var(--text-tertiary);
+    font-style: italic;
 }
 
 .settings-actions {
     display: flex;
     gap: 10px;
     margin-top: 8px;
+}
+
+/* 2-column grid */
+.settings-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 28px;
+}
+
+@media (max-width: 640px) {
+    .settings-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.settings-field-full {
+    grid-column: 1 / -1;
+}
+
+/* Section divider */
+.settings-section-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-indigo);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0;
+}
+.settings-section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-light);
+}
+
+/* Learning style chips */
+.settings-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.settings-chip {
+    padding: 6px 16px;
+    border-radius: var(--radius-full);
+    border: 1.5px solid var(--border-light);
+    background: transparent;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.settings-chip:hover {
+    border-color: var(--color-indigo);
+    color: var(--color-indigo);
+}
+
+.settings-chip-active {
+    background: var(--color-indigo);
+    border-color: var(--color-indigo);
+    color: #fff !important;
+}
+
+/* ---- Profile Hero Card ---- */
+.profile-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.profile-hero-bg {
+    position: absolute;
+    inset: 0;
+    opacity: 0.12;
+    pointer-events: none;
+    transition: opacity var(--transition-base);
+}
+
+.profile-hero-body {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 28px 32px;
+    flex-wrap: wrap;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    letter-spacing: -1px;
+}
+
+.profile-hero-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-hero-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.profile-hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.profile-hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    background: var(--bg-page);
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-card);
+}
+
+.profile-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.profile-saved-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-green);
+    animation: fadeIn 0.3s ease;
 }

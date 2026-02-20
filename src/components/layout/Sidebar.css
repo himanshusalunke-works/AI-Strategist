@@ -173,6 +173,16 @@
     background: rgba(239, 68, 68, 0.1) !important;
 }
 
+.sidebar-version {
+    text-align: center;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.2);
+    margin-top: 10px;
+    letter-spacing: 0.04em;
+    user-select: none;
+    white-space: nowrap;
+}
+
 /* ---- Mobile Overlay ---- */
 .sidebar-overlay {
     display: none;

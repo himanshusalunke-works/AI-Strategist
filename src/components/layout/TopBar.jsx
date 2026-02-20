@@ -1,14 +1,23 @@
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { getGreeting, getDaysUntilExam } from '../../lib/readiness';
-import { mockSubjects } from '../../lib/mockData';
-import { Clock, Bell, User, Menu, X } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { subjectsApi } from '../../lib/api';
+import { getInitials, getAvatarGradient } from '../../pages/Settings';
+import { Clock, Bell, Menu, X, Sun, Moon } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import './TopBar.css';
 
 export default function TopBar({ onMenuToggle }) {
     const { user } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const [showNotifications, setShowNotifications] = useState(false);
     const notificationsRef = useRef(null);
+    const [subjects, setSubjects] = useState([]);
+
+    // Avatar — memoized so it only recalculates when user metadata changes
+    const meta = user?.user_metadata || {};
+    const avatarInitials = useMemo(() => getInitials(meta.name, user?.email), [meta.name, user?.email]);
+    const avatarGradient = useMemo(() => getAvatarGradient(avatarInitials[0] || 'S'), [avatarInitials]);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -28,14 +37,27 @@ export default function TopBar({ onMenuToggle }) {
         { id: 3, title: 'New Physics Topic Unlocked', time: '2h ago', read: true }
     ];
 
-    const subjects = mockSubjects.getAll();
+    // Fetch active subjects for exam countdown
+    useEffect(() => {
+        const fetchSubjects = async () => {
+            if (!user) return;
+            try {
+                const data = await subjectsApi.getAll();
+                setSubjects(data);
+            } catch (err) {
+                console.error("Failed to load subjects for TopBar:", err);
+            }
+        };
+        fetchSubjects();
+    }, [user]);
 
-    // Find nearest exam
+    // Find nearest upcoming exam
     let nearestExam = null;
     let daysUntil = Infinity;
     subjects.forEach(s => {
         const d = getDaysUntilExam(s.exam_date);
-        if (d < daysUntil) {
+        // Only consider exam dates that haven't passed
+        if (d >= 0 && d < daysUntil) {
             daysUntil = d;
             nearestExam = s;
         }
@@ -67,6 +89,14 @@ export default function TopBar({ onMenuToggle }) {
                         </span>
                     </div>
                 )}
+                <button 
+                    className="topbar-icon-btn theme-toggle" 
+                    aria-label="Toggle Theme"
+                    title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                    onClick={toggleTheme}
+                >
+                    {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                </button>
                 <div className="topbar-notification-wrapper" ref={notificationsRef}>
                     <button 
                         className="topbar-icon-btn" 
@@ -101,8 +131,12 @@ export default function TopBar({ onMenuToggle }) {
                         </div>
                     )}
                 </div>
-                <div className="topbar-avatar">
-                    <User size={18} />
+                <div
+                    className="topbar-avatar"
+                    style={{ background: avatarGradient }}
+                    title={meta.name || user?.email || 'Profile'}
+                >
+                    {avatarInitials}
                 </div>
             </div>
         </header>

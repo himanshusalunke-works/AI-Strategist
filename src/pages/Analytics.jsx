@@ -116,6 +116,21 @@ export default function Analytics() {
     const strongTopics = topics.filter(t => t.mastery_score >= 80).length;
     const weakTopics = topics.filter(t => t.mastery_score < 60).length;
 
+    // Read CSS custom properties for theme-aware chart colors
+    const style = getComputedStyle(document.body);
+    const chartGrid   = style.getPropertyValue('--border-card').trim() || '#E5E7EB';
+    const chartTick   = style.getPropertyValue('--text-tertiary').trim() || '#9CA3AF';
+    const chartTick2  = style.getPropertyValue('--text-secondary').trim() || '#6B7280';
+    const chartBg     = style.getPropertyValue('--bg-card').trim() || '#ffffff';
+    const chartBorder = style.getPropertyValue('--border-light').trim() || '#E5E7EB';
+    const tooltipStyle = {
+        borderRadius: 12,
+        border: `1px solid ${chartBorder}`,
+        background: chartBg,
+        color: style.getPropertyValue('--text-primary').trim() || '#111827',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+    };
+
     return (
         <div className="analytics-page">
             <div className="page-header">
@@ -178,12 +193,10 @@ export default function Analytics() {
                                         <stop offset="100%" stopColor="#4F46E5" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} />
-                                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#9CA3AF' }} />
-                                <Tooltip
-                                    contentStyle={{ borderRadius: 12, border: '1px solid #E5E7EB', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-                                />
+                                <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} />
+                                <XAxis dataKey="date" tick={{ fontSize: 11, fill: chartTick }} />
+                                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: chartTick }} />
+                                <Tooltip contentStyle={tooltipStyle} />
                                 <Area type="monotone" dataKey="readiness" stroke="#4F46E5" fill="url(#readinessGrad)" strokeWidth={2.5} />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -197,12 +210,12 @@ export default function Analytics() {
                     <div className="chart-container">
                         <ResponsiveContainer width="100%" height={260}>
                             <BarChart data={topicMasteryData} layout="vertical">
-                                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" horizontal={false} />
-                                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: '#9CA3AF' }} />
-                                <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: '#6B7280' }} width={100} />
+                                <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} horizontal={false} />
+                                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: chartTick }} />
+                                <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: chartTick2 }} width={100} />
                                 <Tooltip
                                     formatter={(val) => [`${val}%`, 'Mastery']}
-                                    contentStyle={{ borderRadius: 12, border: '1px solid #E5E7EB' }}
+                                    contentStyle={tooltipStyle}
                                 />
                                 <Bar
                                     dataKey="mastery"
@@ -222,11 +235,11 @@ export default function Analytics() {
                     <div className="chart-container">
                         <ResponsiveContainer width="100%" height={260}>
                             <LineChart data={accuracyOverTime}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} />
-                                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#9CA3AF' }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} />
+                                <XAxis dataKey="date" tick={{ fontSize: 11, fill: chartTick }} />
+                                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: chartTick }} />
                                 <Tooltip
-                                    contentStyle={{ borderRadius: 12, border: '1px solid #E5E7EB' }}
+                                    contentStyle={tooltipStyle}
                                     formatter={(val, name, props) => [`${val}%`, props.payload.topic]}
                                 />
                                 <Line type="monotone" dataKey="accuracy" stroke="#06B6D4" strokeWidth={2} dot={{ r: 4, fill: '#06B6D4' }} />
@@ -240,21 +253,28 @@ export default function Analytics() {
                     <div className="card-title">Topic Comparison</div>
                     <div className="card-subtitle">Radar view of strengths</div>
                     <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={260}>
-                            <RadarChart data={radarData}>
-                                <PolarGrid stroke="#E5E7EB" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: '#6B7280' }} />
-                                <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#9CA3AF' }} />
-                                <Radar
-                                    name="Mastery"
-                                    dataKey="mastery"
-                                    stroke="#4F46E5"
-                                    fill="#4F46E5"
-                                    fillOpacity={0.2}
-                                    strokeWidth={2}
-                                />
-                            </RadarChart>
-                        </ResponsiveContainer>
+                        {radarData.length < 3 ? (
+                            <div className="empty-state" style={{ height: 260 }}>
+                                <p style={{ fontSize: '0.88rem' }}>Add at least 3 topics to see the radar chart.</p>
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height={260}>
+                                <RadarChart data={radarData}>
+                                    <PolarGrid stroke={chartGrid} />
+                                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: chartTick2 }} />
+                                    <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 10, fill: chartTick }} tickCount={4} />
+                                    <Radar
+                                        name="Mastery"
+                                        dataKey="mastery"
+                                        stroke="#4F46E5"
+                                        fill="#4F46E5"
+                                        fillOpacity={0.2}
+                                        strokeWidth={2}
+                                    />
+                                    <Tooltip contentStyle={tooltipStyle} formatter={(val) => [`${val}%`, 'Mastery']} />
+                                </RadarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             </div>

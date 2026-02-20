@@ -216,7 +216,7 @@
     padding: 14px 18px;
     border: 2px solid var(--border-light);
     border-radius: var(--radius-md);
-    background: white;
+    background: var(--bg-card);
     cursor: pointer;
     transition: all var(--transition-fast);
     text-align: left;
@@ -355,7 +355,7 @@
     text-align: center;
     color: var(--text-secondary);
     font-size: 0.9rem;
-    background: rgba(255, 255, 255, 0.5);
+    background: var(--bg-card);
     border: 1px dashed var(--border-light);
     border-radius: var(--radius-md);
 }
