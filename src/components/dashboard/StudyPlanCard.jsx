@@ -13,7 +13,7 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
         setLoading(true);
         try {
             // Try AI generation first if key is available
-            const apiKey = localStorage.getItem('gemini_api_key') || '';
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
             const scheduleData = apiKey
                 ? await generateScheduleWithAI(topics, subject.exam_date, subject.daily_study_hours, apiKey)
                 : generateScheduleLocally(topics, subject.exam_date, subject.daily_study_hours);
