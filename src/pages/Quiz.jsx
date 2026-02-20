@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { mockTopics, mockSubjects, mockQuiz } from '../lib/mockData';
+import { topicsApi, subjectsApi, quizApi } from '../lib/api';
+import { getQuestions } from '../lib/questionBank';
 import {
     CheckCircle2, XCircle, ArrowRight, Trophy,
     Clock, BookOpen, ChevronRight, RotateCcw
@@ -22,16 +23,34 @@ export default function Quiz() {
     const [score, setScore] = useState(0);
     const [timeLeft, setTimeLeft] = useState(30);
     const [allTopics, setAllTopics] = useState([]);
+    const [subjects, setSubjects] = useState([]);
+    const [updatedMastery, setUpdatedMastery] = useState(0);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // If coming from subject detail with a topic pre-selected
-        const topicId = searchParams.get('topicId');
-        const topicName = searchParams.get('topicName');
-        if (topicId && topicName) {
-            startQuiz({ id: topicId, name: topicName });
-        }
-        // Load all topics for selection
-        setAllTopics(mockTopics.getAll());
+        const init = async () => {
+            try {
+                // Load all topics and subjects for selection
+                const [topicsData, subjectsData] = await Promise.all([
+                    topicsApi.getAll(),
+                    subjectsApi.getAll()
+                ]);
+                setAllTopics(topicsData);
+                setSubjects(subjectsData);
+
+                // If coming from subject detail with a topic pre-selected
+                const topicId = searchParams.get('topicId');
+                const topicName = searchParams.get('topicName');
+                if (topicId && topicName) {
+                    startQuiz({ id: topicId, name: topicName });
+                }
+            } catch (err) {
+                console.error('Failed to load quiz data:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        init();
     }, []);
 
     // Timer
@@ -47,7 +66,7 @@ export default function Quiz() {
 
     const startQuiz = (topic) => {
         setSelectedTopic(topic);
-        const qs = mockQuiz.getQuestions(topic.name);
+        const qs = getQuestions(topic.name);
         setQuestions(qs.slice(0, 5));
         setCurrentQ(0);
         setAnswers([]);
@@ -61,9 +80,10 @@ export default function Quiz() {
         setSelectedAnswer(answerIdx);
         setShowCorrect(true);
         const isCorrect = answerIdx === questions[currentQ].answer;
-        setAnswers([...answers, { selected: answerIdx, correct: questions[currentQ].answer, isCorrect }]);
+        const newAnswers = [...answers, { selected: answerIdx, correct: questions[currentQ].answer, isCorrect }];
+        setAnswers(newAnswers);
 
-        setTimeout(() => {
+        setTimeout(async () => {
             if (currentQ < questions.length - 1) {
                 setCurrentQ(c => c + 1);
                 setSelectedAnswer(null);
@@ -71,25 +91,40 @@ export default function Quiz() {
                 setTimeLeft(30);
             } else {
                 // Calculate score
-                const totalCorrect = [...answers, { isCorrect }].filter(a => a.isCorrect).length;
+                const totalCorrect = newAnswers.filter(a => a.isCorrect).length;
                 const accuracy = Math.round((totalCorrect / questions.length) * 100);
                 setScore(accuracy);
 
-                // Record attempt
-                mockQuiz.recordAttempt({
-                    topic_id: selectedTopic.id,
-                    accuracy
-                });
+                // Record attempt in Supabase
+                try {
+                    const { updatedTopic } = await quizApi.recordAttempt({
+                        topic_id: selectedTopic.id,
+                        accuracy
+                    });
+                    setUpdatedMastery(updatedTopic?.mastery_score || 0);
+                } catch (err) {
+                    console.error('Failed to record attempt:', err);
+                    setUpdatedMastery(0);
+                }
 
                 setStage('result');
             }
         }, 1200);
     };
 
+    if (loading) {
+        return (
+            <div className="quiz-page">
+                <div className="empty-state">
+                    <div className="spinner"></div>
+                    <p>Loading quiz data...</p>
+                </div>
+            </div>
+        );
+    }
+
     // ---- Select Screen ----
     if (stage === 'select') {
-        const subjects = mockSubjects.getAll();
-
         return (
             <div className="quiz-page">
                 <div className="page-header">
@@ -193,7 +228,6 @@ export default function Quiz() {
 
     // ---- Result Screen ----
     if (stage === 'result') {
-        const updatedTopic = mockTopics.getById(selectedTopic.id);
         const correctCount = answers.filter(a => a.isCorrect).length;
 
         return (
@@ -224,14 +258,22 @@ export default function Quiz() {
                     </div>
 
                     <div className="quiz-result-mastery">
-                        <span>Updated Mastery: <strong>{updatedTopic?.mastery_score || 0}%</strong></span>
+                        <span>Updated Mastery: <strong>{updatedMastery}%</strong></span>
                     </div>
 
                     <div className="quiz-result-actions">
                         <button className="btn btn-primary" onClick={() => startQuiz(selectedTopic)}>
                             <RotateCcw size={16} /> Retry
                         </button>
-                        <button className="btn btn-secondary" onClick={() => { setStage('select'); setAllTopics(mockTopics.getAll()); }}>
+                        <button className="btn btn-secondary" onClick={async () => {
+                            setStage('select');
+                            try {
+                                const freshTopics = await topicsApi.getAll();
+                                setAllTopics(freshTopics);
+                            } catch (err) {
+                                console.error('Failed to refresh topics:', err);
+                            }
+                        }}>
                             <BookOpen size={16} /> Other Topics
                         </button>
                         <Link to="/" className="btn btn-ghost">

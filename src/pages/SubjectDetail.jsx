@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { mockSubjects, mockTopics } from '../lib/mockData';
+import { subjectsApi, topicsApi } from '../lib/api';
 import { getStatusColor, getStatusLabel, getDaysUntilExam } from '../lib/readiness';
 import {
     ArrowLeft, Plus, Trash2, Edit2, X, BookOpen, FileQuestion, Calendar
@@ -15,23 +15,41 @@ export default function SubjectDetail() {
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [topicName, setTopicName] = useState('');
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const s = mockSubjects.getById(id);
-        if (!s) { navigate('/subjects'); return; }
-        setSubject(s);
-        setTopics(mockTopics.getBySubject(id));
+        loadData();
     }, [id]);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (editingId) {
-            mockTopics.update(editingId, { name: topicName });
-        } else {
-            mockTopics.create({ subject_id: id, name: topicName });
+    const loadData = async () => {
+        try {
+            const s = await subjectsApi.getById(id);
+            if (!s) { navigate('/subjects'); return; }
+            setSubject(s);
+            const t = await topicsApi.getBySubject(id);
+            setTopics(t);
+        } catch (err) {
+            console.error('Failed to load subject:', err);
+            navigate('/subjects');
+        } finally {
+            setLoading(false);
         }
-        setTopics(mockTopics.getBySubject(id));
-        resetForm();
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingId) {
+                await topicsApi.update(editingId, { name: topicName });
+            } else {
+                await topicsApi.create({ subject_id: id, name: topicName });
+            }
+            const t = await topicsApi.getBySubject(id);
+            setTopics(t);
+            resetForm();
+        } catch (err) {
+            console.error('Failed to save topic:', err);
+        }
     };
 
     const handleEdit = (topic) => {
@@ -40,10 +58,15 @@ export default function SubjectDetail() {
         setShowModal(true);
     };
 
-    const handleDelete = (topicId) => {
+    const handleDelete = async (topicId) => {
         if (confirm('Delete this topic?')) {
-            mockTopics.delete(topicId);
-            setTopics(mockTopics.getBySubject(id));
+            try {
+                await topicsApi.delete(topicId);
+                const t = await topicsApi.getBySubject(id);
+                setTopics(t);
+            } catch (err) {
+                console.error('Failed to delete topic:', err);
+            }
         }
     };
 
@@ -52,6 +75,15 @@ export default function SubjectDetail() {
         setEditingId(null);
         setShowModal(false);
     };
+
+    if (loading) {
+        return (
+            <div className="empty-state">
+                <div className="spinner"></div>
+                <p>Loading subject...</p>
+            </div>
+        );
+    }
 
     if (!subject) return null;
 

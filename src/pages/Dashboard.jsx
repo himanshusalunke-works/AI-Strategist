@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { mockSubjects, mockTopics, mockSchedules } from '../lib/mockData';
+import { subjectsApi, topicsApi, schedulesApi } from '../lib/api';
 import { calculateReadiness, getDaysUntilExam } from '../lib/readiness';
 import ReadinessCard from '../components/dashboard/ReadinessCard';
 import TopicMasteryCard from '../components/dashboard/TopicMasteryCard';
@@ -13,34 +13,57 @@ export default function Dashboard() {
     const [topics, setTopics] = useState([]);
     const [readiness, setReadiness] = useState(null);
     const [schedule, setSchedule] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const allSubjects = mockSubjects.getAll();
-        setSubjects(allSubjects);
-        if (allSubjects.length > 0) {
-            setSelectedSubject(allSubjects[0]);
-        }
+        const loadSubjects = async () => {
+            try {
+                const allSubjects = await subjectsApi.getAll();
+                setSubjects(allSubjects);
+                if (allSubjects.length > 0) {
+                    setSelectedSubject(allSubjects[0]);
+                }
+            } catch (err) {
+                console.error('Failed to load subjects:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadSubjects();
     }, []);
 
     useEffect(() => {
         if (selectedSubject) {
-            const subTopics = mockTopics.getBySubject(selectedSubject.id);
-            setTopics(subTopics);
-            setReadiness(calculateReadiness(subTopics));
-            const sched = mockSchedules.getBySubject(selectedSubject.id);
-            setSchedule(sched?.schedule_data || null);
+            loadSubjectData(selectedSubject.id);
         }
     }, [selectedSubject]);
 
-    const refreshData = () => {
-        if (selectedSubject) {
-            const subTopics = mockTopics.getBySubject(selectedSubject.id);
+    const loadSubjectData = async (subjectId) => {
+        try {
+            const subTopics = await topicsApi.getBySubject(subjectId);
             setTopics(subTopics);
             setReadiness(calculateReadiness(subTopics));
-            const sched = mockSchedules.getBySubject(selectedSubject.id);
+            const sched = await schedulesApi.getBySubject(subjectId);
             setSchedule(sched?.schedule_data || null);
+        } catch (err) {
+            console.error('Failed to load subject data:', err);
         }
     };
+
+    const refreshData = () => {
+        if (selectedSubject) {
+            loadSubjectData(selectedSubject.id);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="empty-state">
+                <div className="spinner"></div>
+                <p>Loading dashboard...</p>
+            </div>
+        );
+    }
 
     if (!selectedSubject) {
         return (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { mockSubjects, mockTopics, mockQuiz } from '../lib/mockData';
+import { subjectsApi, topicsApi, quizApi } from '../lib/api';
 import { calculateReadiness } from '../lib/readiness';
 import {
     LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -12,18 +12,60 @@ import './Analytics.css';
 export default function Analytics() {
     const [subjects, setSubjects] = useState([]);
     const [selectedSubject, setSelectedSubject] = useState(null);
+    const [topics, setTopics] = useState([]);
+    const [allAttempts, setAllAttempts] = useState([]);
+    const [readiness, setReadiness] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const allSubjects = mockSubjects.getAll();
-        setSubjects(allSubjects);
-        if (allSubjects.length > 0) setSelectedSubject(allSubjects[0]);
+        const init = async () => {
+            try {
+                const allSubjects = await subjectsApi.getAll();
+                setSubjects(allSubjects);
+                if (allSubjects.length > 0) {
+                    setSelectedSubject(allSubjects[0]);
+                }
+            } catch (err) {
+                console.error('Failed to load subjects:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        init();
     }, []);
 
-    if (!selectedSubject) return null;
+    useEffect(() => {
+        if (selectedSubject) {
+            loadSubjectData(selectedSubject.id);
+        }
+    }, [selectedSubject]);
 
-    const topics = mockTopics.getBySubject(selectedSubject.id);
-    const readiness = calculateReadiness(topics);
-    const allAttempts = mockQuiz.getAllAttempts();
+    const loadSubjectData = async (subjectId) => {
+        try {
+            const [subTopics, attempts] = await Promise.all([
+                topicsApi.getBySubject(subjectId),
+                quizApi.getAllAttempts()
+            ]);
+            setTopics(subTopics);
+            setAllAttempts(attempts);
+            setReadiness(calculateReadiness(subTopics));
+        } catch (err) {
+            console.error('Failed to load analytics data:', err);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="analytics-page">
+                <div className="empty-state">
+                    <div className="spinner"></div>
+                    <p>Loading analytics...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!selectedSubject) return null;
 
     // Build chart data
     const topicMasteryData = topics.map(t => ({
@@ -101,7 +143,7 @@ export default function Analytics() {
             <div className="analytics-stats">
                 <div className="stat-card card animate-fade-in">
                     <div className="stat-icon stat-icon-indigo"><Target size={20} /></div>
-                    <div className="stat-value">{readiness.readinessScore}%</div>
+                    <div className="stat-value">{readiness?.readinessScore || 0}%</div>
                     <div className="stat-label">Readiness</div>
                 </div>
                 <div className="stat-card card animate-fade-in stagger-1">

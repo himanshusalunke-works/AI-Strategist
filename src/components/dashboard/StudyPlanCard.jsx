@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { mockSchedules } from '../../lib/mockData';
+import { schedulesApi } from '../../lib/api';
 import { generateScheduleLocally, generateScheduleWithAI } from '../../lib/scheduleGenerator';
 import { Sparkles, RefreshCw, ChevronDown, ChevronUp, Clock, BookOpen } from 'lucide-react';
 import './StudyPlanCard.css';
@@ -18,7 +18,7 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
                 ? await generateScheduleWithAI(topics, subject.exam_date, subject.daily_study_hours, apiKey)
                 : generateScheduleLocally(topics, subject.exam_date, subject.daily_study_hours);
 
-            mockSchedules.save({
+            await schedulesApi.save({
                 subject_id: subject.id,
                 schedule_data: scheduleData
             });

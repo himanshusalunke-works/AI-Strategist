@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS topics (
   subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
   mastery_score INTEGER DEFAULT 0,
+  total_attempts INTEGER DEFAULT 0,
+  last_accuracy INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -31,6 +33,7 @@ CREATE TABLE IF NOT EXISTS quiz_attempts (
   topic_id UUID REFERENCES topics(id) ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   accuracy INTEGER NOT NULL CHECK (accuracy >= 0 AND accuracy <= 100),
+  time_taken_seconds INTEGER,
   attempted_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -43,6 +46,14 @@ CREATE TABLE IF NOT EXISTS schedules (
   generated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ---- Readiness Snapshots (Optional) ----
+CREATE TABLE IF NOT EXISTS readiness_snapshots (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE NOT NULL,
+  readiness_score INTEGER DEFAULT 0,
+  calculated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ============================================
 -- Row Level Security (RLS)
 -- ============================================
@@ -51,6 +62,7 @@ ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE topics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quiz_attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE schedules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE readiness_snapshots ENABLE ROW LEVEL SECURITY;
 
 -- Subjects: users can only see/modify their own
 CREATE POLICY "Users manage own subjects" ON subjects
@@ -70,6 +82,12 @@ CREATE POLICY "Users manage own quiz attempts" ON quiz_attempts
 CREATE POLICY "Users manage own schedules" ON schedules
   FOR ALL USING (auth.uid() = user_id);
 
+-- Readiness Snapshots: users can manage their own
+CREATE POLICY "Users manage own readiness snapshots" ON readiness_snapshots
+  FOR ALL USING (
+    subject_id IN (SELECT id FROM subjects WHERE user_id = auth.uid())
+  );
+
 -- ============================================
 -- Indexes for Performance
 -- ============================================
@@ -79,3 +97,4 @@ CREATE INDEX IF NOT EXISTS idx_topics_subject ON topics(subject_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_topic ON quiz_attempts(topic_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user ON quiz_attempts(user_id);
 CREATE INDEX IF NOT EXISTS idx_schedules_subject ON schedules(subject_id);
+CREATE INDEX IF NOT EXISTS idx_readiness_subject ON readiness_snapshots(subject_id);

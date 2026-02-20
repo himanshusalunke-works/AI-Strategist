@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { mockAuth } from '../lib/mockData';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
@@ -8,30 +8,71 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Restore session from localStorage
-        const restored = mockAuth.restoreSession();
-        if (restored) {
-            setUser(restored);
-        }
-        setLoading(false);
+        // Get initial session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+                setUser({
+                    id: session.user.id,
+                    email: session.user.email,
+                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || ''
+                });
+            }
+            setLoading(false);
+        });
+
+        // Listen for auth state changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                setUser({
+                    id: session.user.id,
+                    email: session.user.email,
+                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || ''
+                });
+            } else {
+                setUser(null);
+            }
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     const signUp = async ({ email, password, name }) => {
-        const { user: newUser, error } = mockAuth.signUp({ email, password, name });
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: { name }
+            }
+        });
         if (error) return { error };
-        setUser(newUser);
-        return { user: newUser };
+        if (data.user) {
+            setUser({
+                id: data.user.id,
+                email: data.user.email,
+                name: data.user.user_metadata?.name || name || ''
+            });
+        }
+        return { user: data.user };
     };
 
     const signIn = async ({ email, password }) => {
-        const { user: loggedIn, error } = mockAuth.signIn({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
         if (error) return { error };
-        setUser(loggedIn);
-        return { user: loggedIn };
+        if (data.user) {
+            setUser({
+                id: data.user.id,
+                email: data.user.email,
+                name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || ''
+            });
+        }
+        return { user: data.user };
     };
 
     const signOut = async () => {
-        mockAuth.signOut();
+        await supabase.auth.signOut();
         setUser(null);
     };
 

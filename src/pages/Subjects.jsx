@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { mockSubjects } from '../lib/mockData';
+import { subjectsApi } from '../lib/api';
 import { getDaysUntilExam } from '../lib/readiness';
 import {
     Plus, BookOpen, Calendar, Clock, Trash2, Edit2, X
@@ -12,20 +12,36 @@ export default function Subjects() {
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState({ name: '', exam_date: '', daily_study_hours: 3 });
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        setSubjects(mockSubjects.getAll());
+        loadSubjects();
     }, []);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (editingId) {
-            mockSubjects.update(editingId, form);
-        } else {
-            mockSubjects.create(form);
+    const loadSubjects = async () => {
+        try {
+            const data = await subjectsApi.getAll();
+            setSubjects(data);
+        } catch (err) {
+            console.error('Failed to load subjects:', err);
+        } finally {
+            setLoading(false);
         }
-        setSubjects(mockSubjects.getAll());
-        resetForm();
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingId) {
+                await subjectsApi.update(editingId, form);
+            } else {
+                await subjectsApi.create(form);
+            }
+            await loadSubjects();
+            resetForm();
+        } catch (err) {
+            console.error('Failed to save subject:', err);
+        }
     };
 
     const handleEdit = (subject) => {
@@ -34,10 +50,14 @@ export default function Subjects() {
         setShowModal(true);
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (confirm('Delete this subject and all its topics?')) {
-            mockSubjects.delete(id);
-            setSubjects(mockSubjects.getAll());
+            try {
+                await subjectsApi.delete(id);
+                await loadSubjects();
+            } catch (err) {
+                console.error('Failed to delete subject:', err);
+            }
         }
     };
 
@@ -46,6 +66,15 @@ export default function Subjects() {
         setEditingId(null);
         setShowModal(false);
     };
+
+    if (loading) {
+        return (
+            <div className="empty-state">
+                <div className="spinner"></div>
+                <p>Loading subjects...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="subjects-page">

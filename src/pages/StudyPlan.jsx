@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { mockSubjects, mockTopics, mockSchedules } from '../lib/mockData';
+import { subjectsApi, topicsApi, schedulesApi } from '../lib/api';
 import { generateScheduleLocally, generateScheduleWithAI } from '../lib/scheduleGenerator';
 import { getDaysUntilExam } from '../lib/readiness';
 import {
@@ -14,27 +14,41 @@ export default function StudyPlan() {
     const [selectedDay, setSelectedDay] = useState(null);
     const [loading, setLoading] = useState(false);
     const [topics, setTopics] = useState([]);
+    const [pageLoading, setPageLoading] = useState(true);
 
     useEffect(() => {
-        const allSubjects = mockSubjects.getAll();
-        setSubjects(allSubjects);
-        if (allSubjects.length > 0) {
-            selectSubject(allSubjects[0]);
-        }
+        const init = async () => {
+            try {
+                const allSubjects = await subjectsApi.getAll();
+                setSubjects(allSubjects);
+                if (allSubjects.length > 0) {
+                    await selectSubject(allSubjects[0]);
+                }
+            } catch (err) {
+                console.error('Failed to load subjects:', err);
+            } finally {
+                setPageLoading(false);
+            }
+        };
+        init();
     }, []);
 
-    const selectSubject = (subject) => {
+    const selectSubject = async (subject) => {
         setSelectedSubject(subject);
-        const subTopics = mockTopics.getBySubject(subject.id);
-        setTopics(subTopics);
-        const sched = mockSchedules.getBySubject(subject.id);
-        if (sched?.schedule_data) {
-            setSchedule(sched.schedule_data);
-            const days = Object.keys(sched.schedule_data);
-            setSelectedDay(days[0] || null);
-        } else {
-            setSchedule(null);
-            setSelectedDay(null);
+        try {
+            const subTopics = await topicsApi.getBySubject(subject.id);
+            setTopics(subTopics);
+            const sched = await schedulesApi.getBySubject(subject.id);
+            if (sched?.schedule_data) {
+                setSchedule(sched.schedule_data);
+                const days = Object.keys(sched.schedule_data);
+                setSelectedDay(days[0] || null);
+            } else {
+                setSchedule(null);
+                setSelectedDay(null);
+            }
+        } catch (err) {
+            console.error('Failed to load subject data:', err);
         }
     };
 
@@ -47,7 +61,7 @@ export default function StudyPlan() {
                 ? await generateScheduleWithAI(topics, selectedSubject.exam_date, selectedSubject.daily_study_hours, apiKey)
                 : generateScheduleLocally(topics, selectedSubject.exam_date, selectedSubject.daily_study_hours);
 
-            mockSchedules.save({ subject_id: selectedSubject.id, schedule_data: scheduleData });
+            await schedulesApi.save({ subject_id: selectedSubject.id, schedule_data: scheduleData });
             setSchedule(scheduleData);
             const days = Object.keys(scheduleData);
             setSelectedDay(days[0] || null);
@@ -57,6 +71,17 @@ export default function StudyPlan() {
             setLoading(false);
         }
     };
+
+    if (pageLoading) {
+        return (
+            <div className="study-plan-page">
+                <div className="empty-state">
+                    <div className="spinner"></div>
+                    <p>Loading study plan...</p>
+                </div>
+            </div>
+        );
+    }
 
     const days = schedule ? Object.entries(schedule) : [];
     const dayItems = selectedDay && schedule ? schedule[selectedDay] : [];
