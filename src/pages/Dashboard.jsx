@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { subjectsApi, topicsApi, schedulesApi } from '../lib/api';
 import { calculateReadiness, getDaysUntilExam } from '../lib/readiness';
 import ReadinessCard from '../components/dashboard/ReadinessCard';
 import TopicMasteryCard from '../components/dashboard/TopicMasteryCard';
 import WeakTopicsCard from '../components/dashboard/WeakTopicsCard';
 import StudyPlanCard from '../components/dashboard/StudyPlanCard';
+import {
+    BookOpen, FileQuestion, Calendar, TrendingUp,
+    Clock, Zap, Target, ArrowRight
+} from 'lucide-react';
 import './Dashboard.css';
 
 export default function Dashboard() {
@@ -67,14 +72,23 @@ export default function Dashboard() {
 
     if (!selectedSubject) {
         return (
-            <div className="empty-state">
-                <h3>No subjects yet</h3>
-                <p>Add a subject to get started with your study plan.</p>
+            <div className="dashboard-empty">
+                <div className="dashboard-empty-card card animate-scale">
+                    <div className="dashboard-empty-icon">🎓</div>
+                    <h2>Welcome to AI Study Strategist</h2>
+                    <p>Get started by adding your first subject to begin your personalized study journey.</p>
+                    <Link to="/subjects" className="btn btn-primary btn-lg">
+                        <BookOpen size={18} /> Add Your First Subject
+                    </Link>
+                </div>
             </div>
         );
     }
 
     const daysUntil = getDaysUntilExam(selectedSubject.exam_date);
+    const totalTopics = topics.length;
+    const masteredTopics = topics.filter(t => t.mastery_score >= 80).length;
+    const weakTopics = topics.filter(t => t.mastery_score < 50).length;
 
     return (
         <div className="dashboard">
@@ -93,7 +107,66 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* Grid */}
+            {/* Quick Stats Row */}
+            <div className="dashboard-stats-row">
+                <div className="stat-card stat-card-indigo animate-fade-in stagger-1">
+                    <div className="stat-card-icon">
+                        <Target size={20} />
+                    </div>
+                    <div className="stat-card-info">
+                        <span className="stat-card-value">{readiness?.readinessScore || 0}%</span>
+                        <span className="stat-card-label">Readiness</span>
+                    </div>
+                </div>
+                <div className="stat-card stat-card-teal animate-fade-in stagger-2">
+                    <div className="stat-card-icon">
+                        <Clock size={20} />
+                    </div>
+                    <div className="stat-card-info">
+                        <span className="stat-card-value">{daysUntil > 0 ? daysUntil : 0}</span>
+                        <span className="stat-card-label">{daysUntil === 1 ? 'Day Left' : 'Days Left'}</span>
+                    </div>
+                </div>
+                <div className="stat-card stat-card-green animate-fade-in stagger-3">
+                    <div className="stat-card-icon">
+                        <Zap size={20} />
+                    </div>
+                    <div className="stat-card-info">
+                        <span className="stat-card-value">{masteredTopics}/{totalTopics}</span>
+                        <span className="stat-card-label">Mastered</span>
+                    </div>
+                </div>
+                <div className="stat-card stat-card-orange animate-fade-in stagger-4">
+                    <div className="stat-card-icon">
+                        <TrendingUp size={20} />
+                    </div>
+                    <div className="stat-card-info">
+                        <span className="stat-card-value">{weakTopics}</span>
+                        <span className="stat-card-label">Need Focus</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="dashboard-quick-actions">
+                <Link to="/quiz" className="quick-action-btn">
+                    <FileQuestion size={18} />
+                    <span>Take a Quiz</span>
+                    <ArrowRight size={14} />
+                </Link>
+                <Link to="/study-plan" className="quick-action-btn">
+                    <Calendar size={18} />
+                    <span>View Study Plan</span>
+                    <ArrowRight size={14} />
+                </Link>
+                <Link to="/subjects" className="quick-action-btn">
+                    <BookOpen size={18} />
+                    <span>Manage Subjects</span>
+                    <ArrowRight size={14} />
+                </Link>
+            </div>
+
+            {/* Main Grid */}
             <div className="dashboard-grid">
                 <div className="dashboard-col-left">
                     <ReadinessCard

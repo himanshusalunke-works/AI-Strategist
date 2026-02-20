@@ -136,23 +136,48 @@ export default function Quiz() {
 
                 {subjects.map(subject => {
                     const subTopics = allTopics.filter(t => t.subject_id === subject.id);
-                    if (subTopics.length === 0) return null;
+                    if (subTopics.length === 0) {
+                        return (
+                            <div key={subject.id} className="quiz-subject-group">
+                                <h3 className="quiz-subject-name">{subject.name}</h3>
+                                <div className="card empty-state-small">
+                                    <p>No topics available for this subject yet.</p>
+                                </div>
+                            </div>
+                        );
+                    }
                     return (
                         <div key={subject.id} className="quiz-subject-group">
                             <h3 className="quiz-subject-name">{subject.name}</h3>
                             <div className="quiz-topic-grid">
-                                {subTopics.map(topic => (
-                                    <button
-                                        key={topic.id}
-                                        className="quiz-topic-card card"
-                                        onClick={() => startQuiz(topic)}
-                                    >
-                                        <BookOpen size={20} className="quiz-topic-icon" />
-                                        <span className="quiz-topic-name">{topic.name}</span>
-                                        <span className="quiz-topic-mastery">{topic.mastery_score}% mastery</span>
-                                        <ChevronRight size={16} className="quiz-topic-arrow" />
-                                    </button>
-                                ))}
+                                {subTopics.map(topic => {
+                                    const mastery = topic.mastery_score || 0;
+                                    const barColor = mastery >= 80 ? 'var(--color-green)' : mastery >= 50 ? 'var(--color-orange)' : 'var(--color-red)';
+                                    return (
+                                        <button
+                                            key={topic.id}
+                                            className="quiz-topic-card card"
+                                            onClick={() => startQuiz(topic)}
+                                        >
+                                            <div className="quiz-topic-card-top">
+                                                <div className="quiz-topic-icon">
+                                                    <BookOpen size={20} />
+                                                </div>
+                                                <span className="quiz-topic-name">{topic.name}</span>
+                                                <ChevronRight size={16} className="quiz-topic-arrow" />
+                                            </div>
+                                            <div className="quiz-topic-bottom">
+                                                <div className="quiz-topic-mastery-bar">
+                                                    <div
+                                                        className="quiz-topic-mastery-fill"
+                                                        style={{ width: `${mastery}%`, background: barColor }}
+                                                    />
+                                                </div>
+                                                <span className="quiz-topic-mastery-text">{mastery}%</span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     );

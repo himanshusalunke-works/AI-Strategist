@@ -6,7 +6,17 @@
 .app-main {
     flex: 1;
     margin-left: var(--sidebar-width);
-    transition: margin-left var(--transition-slow);
+    transition: margin-left 0.25s ease;
+}
+
+/* When sidebar is collapsed, shrink the margin */
+.sidebar-is-collapsed .app-main {
+    margin-left: var(--sidebar-collapsed);
+}
+
+/* TopBar also needs to shift */
+.sidebar-is-collapsed .topbar {
+    left: var(--sidebar-collapsed);
 }
 
 .app-content {
@@ -22,5 +32,13 @@
 
     .app-content {
         padding: 16px;
+    }
+
+    .sidebar-is-collapsed .app-main {
+        margin-left: 0;
+    }
+
+    .sidebar-is-collapsed .topbar {
+        left: 0;
     }
 }

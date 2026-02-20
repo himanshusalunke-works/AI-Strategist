@@ -6,10 +6,16 @@ import './AppLayout.css';
 
 export default function AppLayout() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     return (
-        <div className="app-layout">
-            <Sidebar />
+        <div className={`app-layout ${sidebarCollapsed ? 'sidebar-is-collapsed' : ''}`}>
+            <Sidebar
+                mobileOpen={mobileMenuOpen}
+                onMobileClose={() => setMobileMenuOpen(false)}
+                collapsed={sidebarCollapsed}
+                onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+            />
             <div className="app-main">
                 <TopBar onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
                 <main className="app-content">

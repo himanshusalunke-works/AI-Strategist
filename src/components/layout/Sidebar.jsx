@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard,
@@ -12,7 +12,6 @@ import {
     ChevronLeft,
     ChevronRight
 } from 'lucide-react';
-import { useState } from 'react';
 import './Sidebar.css';
 
 const navItems = [
@@ -24,55 +23,67 @@ const navItems = [
     { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse }) {
     const { signOut } = useAuth();
-    const [collapsed, setCollapsed] = useState(false);
+
+    const handleNavClick = () => {
+        if (mobileOpen && onMobileClose) {
+            onMobileClose();
+        }
+    };
 
     return (
-        <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}>
-            <div className="sidebar-header">
-                <div className="sidebar-logo">
-                    <div className="logo-icon">
-                        <Brain size={24} />
+        <>
+            {mobileOpen && (
+                <div className="sidebar-overlay" onClick={onMobileClose} />
+            )}
+
+            <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''} ${mobileOpen ? 'sidebar-mobile-open' : ''}`}>
+                <div className="sidebar-header">
+                    <div className="sidebar-logo">
+                        <div className="logo-icon">
+                            <Brain size={24} />
+                        </div>
+                        {!collapsed && <span className="logo-text">AI Strategist</span>}
                     </div>
-                    <span className="logo-text">AI Strategist</span>
-                </div>
-                <button
-                    className="sidebar-toggle"
-                    onClick={() => setCollapsed(!collapsed)}
-                    aria-label="Toggle sidebar"
-                >
-                    {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-                </button>
-            </div>
-
-            <nav className="sidebar-nav">
-                {navItems.map((item) => (
-                    <NavLink
-                        key={item.to}
-                        to={item.to}
-                        end={item.to === '/'}
-                        className={({ isActive }) =>
-                            `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
-                        }
-                        title={collapsed ? item.label : undefined}
+                    <button
+                        className="sidebar-toggle"
+                        onClick={onToggleCollapse}
+                        aria-label="Toggle sidebar"
                     >
-                        <item.icon size={20} min-width={20} />
-                        <span className="sidebar-label">{item.label}</span>
-                    </NavLink>
-                ))}
-            </nav>
+                        {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                    </button>
+                </div>
 
-            <div className="sidebar-footer">
-                <button 
-                    className="sidebar-link sidebar-logout" 
-                    onClick={signOut}
-                    title={collapsed ? "Log Out" : undefined}
-                >
-                    <LogOut size={20} min-width={20} />
-                    <span className="sidebar-label">Log Out</span>
-                </button>
-            </div>
-        </aside>
+                <nav className="sidebar-nav">
+                    {navItems.map((item) => (
+                        <NavLink
+                            key={item.to}
+                            to={item.to}
+                            end={item.to === '/'}
+                            className={({ isActive }) =>
+                                `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
+                            }
+                            title={collapsed ? item.label : undefined}
+                            onClick={handleNavClick}
+                        >
+                            <span className="sidebar-icon"><item.icon size={20} /></span>
+                            {!collapsed && <span>{item.label}</span>}
+                        </NavLink>
+                    ))}
+                </nav>
+
+                <div className="sidebar-footer">
+                    <button
+                        className="sidebar-link sidebar-logout"
+                        onClick={signOut}
+                        title={collapsed ? 'Log Out' : undefined}
+                    >
+                        <span className="sidebar-icon"><LogOut size={20} /></span>
+                        {!collapsed && <span>Log Out</span>}
+                    </button>
+                </div>
+            </aside>
+        </>
     );
 }
