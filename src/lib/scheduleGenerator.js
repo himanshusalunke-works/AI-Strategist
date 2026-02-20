@@ -68,19 +68,15 @@ export async function generateScheduleWithAI(topics, examDate, dailyHours, apiKe
     }
 
     try {
-        const { GoogleGenerativeAI } = await import('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const Groq = (await import('groq-sdk')).default;
+        const groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
 
         const daysUntil = Math.max(1, Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)));
         const scheduleDays = Math.min(daysUntil, 7);
 
         const topicData = topics.map(t => `- ${t.name}: mastery ${t.mastery_score}%`).join('\n');
 
-        const prompt = `You are an expert study planner. Create a ${scheduleDays}-day study schedule for a student.
-
-Study Data:
-${topicData}
+        const systemPrompt = `You are an expert study planner. Create a ${scheduleDays}-day study schedule for a student. Return ONLY valid JSON in the exact format requested.
 
 Constraints:
 - Exam is in ${daysUntil} days
@@ -95,18 +91,26 @@ Constraints:
   * >= 80%: "Review: Strong mastery. Light revision to maintain knowledge."
   Append a brief tip specific to the topic to these categories.
 
-Return ONLY valid JSON in this exact format (no markdown, no explanation):
+Return EXACTLY this JSON structure:
 {
   "Day 1": [
-    {"topic": "Topic Name", "duration": 60, "reason": "Brief explanation why this topic needs focus"}
-  ],
-  "Day 2": [...]
+    {"topic": "Topic Name", "duration": 60, "reason": "Explanation according to mastery score"}
+  ]
 }
-
 Each day's total duration must not exceed ${dailyHours * 60} minutes.`;
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
+        const userPrompt = `Study Data:\n${topicData}\n\nGenerate the JSON schedule.`;
+
+        const completion = await groq.chat.completions.create({
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt }
+            ],
+            model: "llama-3.3-70b-versatile",
+            response_format: { type: "json_object" }
+        });
+
+        const text = completion.choices[0]?.message?.content || "";
 
         // Extract JSON from response
         const jsonMatch = text.match(/\{[\s\S]*\}/);

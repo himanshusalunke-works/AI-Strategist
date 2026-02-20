@@ -65,7 +65,7 @@ export default function StudyPlan() {
     if (!selectedSubject) return;
     setLoading(true);
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+      const apiKey = import.meta.env.VITE_GROQ_API_KEY || "";
       const scheduleData = apiKey
         ? await generateScheduleWithAI(
             topics,

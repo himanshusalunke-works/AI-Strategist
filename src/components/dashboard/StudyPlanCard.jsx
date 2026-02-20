@@ -25,8 +25,7 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
         setLoading(true);
         setApiError(null);
         try {
-            // Try AI generation first if key is available
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+            const apiKey = import.meta.env.VITE_GROQ_API_KEY || '';
             const scheduleData = apiKey
                 ? await generateScheduleWithAI(topics, subject.exam_date, subject.daily_study_hours, apiKey, subject.id)
                 : generateScheduleLocally(topics, subject.exam_date, subject.daily_study_hours);

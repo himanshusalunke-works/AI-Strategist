@@ -98,3 +98,17 @@ CREATE INDEX IF NOT EXISTS idx_quiz_attempts_topic ON quiz_attempts(topic_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user ON quiz_attempts(user_id);
 CREATE INDEX IF NOT EXISTS idx_schedules_subject ON schedules(subject_id);
 CREATE INDEX IF NOT EXISTS idx_readiness_subject ON readiness_snapshots(subject_id);
+
+-- ---- AI Logs ----
+CREATE TABLE IF NOT EXISTS public.ai_logs (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    subject_id UUID REFERENCES public.subjects(id) ON DELETE CASCADE,
+    prompt_used TEXT,
+    ai_output JSONB NOT NULL,
+    generated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.ai_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own ai_logs" ON public.ai_logs FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own ai_logs" ON public.ai_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_logs_user ON ai_logs(user_id);

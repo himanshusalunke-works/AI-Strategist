@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { topicsApi, subjectsApi, quizApi } from '../lib/api';
-import { getQuestions } from '../lib/questionBank';
+import { generateQuizWithAI } from '../lib/quizGenerator';
 import {
     CheckCircle2, XCircle, ArrowRight, Trophy,
-    Clock, BookOpen, ChevronRight, RotateCcw
+    Clock, BookOpen, ChevronRight, RotateCcw, Sparkles
 } from 'lucide-react';
 import './Quiz.css';
 
@@ -26,6 +26,7 @@ export default function Quiz() {
     const [subjects, setSubjects] = useState([]);
     const [updatedMastery, setUpdatedMastery] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
         const init = async () => {
@@ -64,16 +65,25 @@ export default function Quiz() {
         return () => clearTimeout(timer);
     }, [timeLeft, stage, showCorrect]);
 
-    const startQuiz = (topic) => {
+    const startQuiz = async (topic) => {
         setSelectedTopic(topic);
-        const qs = getQuestions(topic.name);
-        setQuestions(qs.slice(0, 5));
-        setCurrentQ(0);
-        setAnswers([]);
-        setSelectedAnswer(null);
-        setShowCorrect(false);
-        setTimeLeft(30);
-        setStage('quiz');
+        setIsGenerating(true);
+        try {
+            const apiKey = import.meta.env.VITE_GROQ_API_KEY || '';
+            const qs = await generateQuizWithAI(topic.name, apiKey, topic.id);
+            setQuestions(qs.slice(0, 5));
+            setCurrentQ(0);
+            setAnswers([]);
+            setSelectedAnswer(null);
+            setShowCorrect(false);
+            setTimeLeft(30);
+            setStage('quiz');
+        } catch (err) {
+            console.error('Failed to start quiz:', err);
+            // Error handling fallback is already inside `generateQuizWithAI`
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     const handleAnswer = (answerIdx) => {
@@ -134,10 +144,18 @@ export default function Quiz() {
                     </div>
                 </div>
 
-                {subjects.map(subject => {
-                    const subTopics = allTopics.filter(t => t.subject_id === subject.id);
-                    if (subTopics.length === 0) {
-                        return (
+                {isGenerating ? (
+                    <div className="card empty-state">
+                        <Sparkles size={40} className="plan-empty-icon" style={{ animation: 'pulse 2s infinite' }} />
+                        <h3>Generating Quiz</h3>
+                        <p>Our AI tutor is crafting personalized questions to test your knowledge on {selectedTopic?.name}...</p>
+                    </div>
+                ) : (
+                    <>
+                        {subjects.map(subject => {
+                            const subTopics = allTopics.filter(t => t.subject_id === subject.id);
+                            if (subTopics.length === 0) {
+                                return (
                             <div key={subject.id} className="quiz-subject-group">
                                 <h3 className="quiz-subject-name">{subject.name}</h3>
                                 <div className="card empty-state-small">
@@ -178,10 +196,12 @@ export default function Quiz() {
                                         </button>
                                     );
                                 })}
+                                </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </>
+                )}
             </div>
         );
     }
