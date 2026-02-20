@@ -13,9 +13,14 @@ import { supabase } from './supabase';
 export const subjectsApi = {
     /** Get all subjects for the current user */
     async getAll() {
+        // Ensure session is active before query
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
         const { data, error } = await supabase
             .from('subjects')
             .select('*')
+            .eq('user_id', user.id)
             .order('created_at', { ascending: false });
         if (error) throw error;
         return data || [];
@@ -23,10 +28,14 @@ export const subjectsApi = {
 
     /** Get a single subject by ID */
     async getById(id) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
         const { data, error } = await supabase
             .from('subjects')
             .select('*')
             .eq('id', id)
+            .eq('user_id', user.id)
             .single();
         if (error) throw error;
         return data;
@@ -78,10 +87,14 @@ export const subjectsApi = {
 export const topicsApi = {
     /** Get all topics for a subject */
     async getBySubject(subjectId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
         const { data, error } = await supabase
             .from('topics')
             .select('*')
             .eq('subject_id', subjectId)
+            // Note: RLS on topics should verify through subject_id matching user_id
             .order('created_at', { ascending: true });
         if (error) throw error;
         return data || [];
@@ -89,9 +102,13 @@ export const topicsApi = {
 
     /** Get all topics for the current user (across all subjects) */
     async getAll() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
         const { data, error } = await supabase
             .from('topics')
             .select('*, subjects!inner(user_id)')
+            .eq('subjects.user_id', user.id)
             .order('created_at', { ascending: true });
         if (error) throw error;
         // Flatten — remove the joined subjects object
@@ -100,10 +117,14 @@ export const topicsApi = {
 
     /** Get a single topic by ID */
     async getById(id) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
         const { data, error } = await supabase
             .from('topics')
-            .select('*')
+            .select('*, subjects!inner(user_id)')
             .eq('id', id)
+            .eq('subjects.user_id', user.id)
             .single();
         if (error) throw error;
         return data;
@@ -201,10 +222,14 @@ export const quizApi = {
 
     /** Get all quiz attempts for a specific topic */
     async getAttemptsByTopic(topicId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
         const { data, error } = await supabase
             .from('quiz_attempts')
             .select('*')
             .eq('topic_id', topicId)
+            .eq('user_id', user.id)
             .order('attempted_at', { ascending: true });
         if (error) throw error;
         return data || [];
@@ -230,10 +255,14 @@ export const quizApi = {
 export const schedulesApi = {
     /** Get the latest schedule for a subject */
     async getBySubject(subjectId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
         const { data, error } = await supabase
             .from('schedules')
             .select('*')
             .eq('subject_id', subjectId)
+            .eq('user_id', user.id)
             .order('generated_at', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -263,6 +292,39 @@ export const schedulesApi = {
             .select()
             .single();
         if (error) throw error;
+        return data;
+    }
+};
+
+// ============================================
+// AI LOGS
+// ============================================
+
+export const aiLogsApi = {
+    /** 
+     * Insert a new AI generation log to keep an audit trail.
+     * @param {Object} log - { subject_id, prompt_used, ai_output }
+     */
+    async insert({ subject_id, prompt_used, ai_output }) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        const { data, error } = await supabase
+            .from('ai_logs')
+            .insert({
+                user_id: user.id,
+                subject_id: subject_id || null, // Optional connection to subject
+                prompt_used,
+                ai_output
+            })
+            .select()
+            .single();
+            
+        if (error) {
+            console.error('Failed to insert AI log:', error);
+            // We usually don't want a logging failure to crash the whole app flow
+            return null; 
+        }
         return data;
     }
 };

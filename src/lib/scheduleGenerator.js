@@ -3,6 +3,8 @@
  * Constructs prompt, calls AI API, validates response
  */
 
+import { aiLogsApi } from './api';
+
 // Fallback schedule generator (when no API key is available)
 export function generateScheduleLocally(topics, examDate, dailyHours) {
     const daysUntil = Math.max(1, Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)));
@@ -59,7 +61,7 @@ export function generateScheduleLocally(topics, examDate, dailyHours) {
 }
 
 // AI-powered schedule generation (requires API key)
-export async function generateScheduleWithAI(topics, examDate, dailyHours, apiKey) {
+export async function generateScheduleWithAI(topics, examDate, dailyHours, apiKey, subjectId = null) {
     if (!apiKey) {
         // Fall back to local generation
         return generateScheduleLocally(topics, examDate, dailyHours);
@@ -86,6 +88,12 @@ Constraints:
 - Prioritize weak topics (< 60% mastery)
 - Balance workload across days
 - Give more time to topics with lowest mastery
+- For the "reason" field, you MUST categorize and explain based on mastery:
+  * < 40%: "Critical: Very low mastery. Needs intensive practice."
+  * < 60%: "High priority: Below passing threshold. Focus on fundamentals."
+  * < 80%: "Moderate: Good progress but room for improvement."
+  * >= 80%: "Review: Strong mastery. Light revision to maintain knowledge."
+  Append a brief tip specific to the topic to these categories.
 
 Return ONLY valid JSON in this exact format (no markdown, no explanation):
 {
@@ -108,6 +116,13 @@ Each day's total duration must not exceed ${dailyHours * 60} minutes.`;
 
         // Validate structure
         if (typeof schedule !== 'object') throw new Error('Invalid schedule format');
+
+        // Log to database asynchronously without waiting to avoid slowing down user
+        aiLogsApi.insert({
+            subject_id: subjectId,
+            prompt_used: prompt,
+            ai_output: schedule
+        }).catch(err => console.error("Failed async AI log insert:", err));
 
         return schedule;
     } catch (error) {

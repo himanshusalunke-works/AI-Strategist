@@ -72,6 +72,7 @@ export default function StudyPlan() {
             selectedSubject.exam_date,
             selectedSubject.daily_study_hours,
             apiKey,
+            selectedSubject.id
           )
         : generateScheduleLocally(
             topics,

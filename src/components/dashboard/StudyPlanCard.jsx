@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { schedulesApi } from '../../lib/api';
 import { generateScheduleLocally, generateScheduleWithAI } from '../../lib/scheduleGenerator';
 import { Sparkles, RefreshCw, ChevronDown, ChevronUp, Clock, BookOpen } from 'lucide-react';
@@ -8,14 +8,27 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
     const [loading, setLoading] = useState(false);
     const [expandedDay, setExpandedDay] = useState(null);
     const [expandedReasons, setExpandedReasons] = useState({});
+    const [cooldownTime, setCooldownTime] = useState(0);
+    const [apiError, setApiError] = useState(null);
+
+    // Cooldown timer effect
+    useEffect(() => {
+        if (cooldownTime > 0) {
+            const timer = setTimeout(() => setCooldownTime(c => c - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [cooldownTime]);
 
     const handleGenerate = async () => {
+        if (loading || cooldownTime > 0) return;
+        
         setLoading(true);
+        setApiError(null);
         try {
             // Try AI generation first if key is available
             const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
             const scheduleData = apiKey
-                ? await generateScheduleWithAI(topics, subject.exam_date, subject.daily_study_hours, apiKey)
+                ? await generateScheduleWithAI(topics, subject.exam_date, subject.daily_study_hours, apiKey, subject.id)
                 : generateScheduleLocally(topics, subject.exam_date, subject.daily_study_hours);
 
             await schedulesApi.save({
@@ -23,8 +36,16 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
                 schedule_data: scheduleData
             });
             onRefresh();
+            setCooldownTime(10); // 10 second cooldown on success
         } catch (error) {
             console.error('Schedule generation failed:', error);
+            if (error.message?.includes('429') || error.status === 429) {
+                setApiError("Rate limit exceeded. Please wait a moment before trying again.");
+                setCooldownTime(10); // 10s backoff for rate limits
+            } else {
+                setApiError("Failed to generate schedule. Please check your API key.");
+                setCooldownTime(5);
+            }
         } finally {
             setLoading(false);
         }
@@ -52,7 +73,7 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
                 <button
                     className={`btn ${schedule ? 'btn-secondary' : 'btn-primary'} btn-sm`}
                     onClick={handleGenerate}
-                    disabled={loading}
+                    disabled={loading || cooldownTime > 0}
                 >
                     {loading ? (
                         <><div className="spinner"></div> Generating...</>
@@ -63,6 +84,18 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
                     )}
                 </button>
             </div>
+            
+            {apiError && (
+                <div style={{ color: 'var(--color-red)', fontSize: '0.85rem', marginBottom: '16px', padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius-sm)' }}>
+                    {apiError} {cooldownTime > 0 ? `(Wait ${cooldownTime}s)` : ''}
+                </div>
+            )}
+            
+            {cooldownTime > 0 && !apiError && !loading && (
+                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '16px', textAlign: 'right' }}>
+                     Please wait {cooldownTime}s before regenerating again.
+                 </div>
+            )}
 
             {!schedule ? (
                 <div className="plan-empty">

@@ -39,23 +39,17 @@ export default function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggle
             )}
 
             <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''} ${mobileOpen ? 'sidebar-mobile-open' : ''}`}>
-                <div className="sidebar-header">
-                    <div className="sidebar-logo">
-                        <div className="logo-icon">
-                            <Brain size={24} />
+                <div className="sidebar-inner">
+                    <div className="sidebar-header">
+                        <div className="sidebar-logo">
+                            <div className="logo-icon">
+                                <Brain size={24} />
+                            </div>
+                            {!collapsed && <span className="logo-text">AI Strategist</span>}
                         </div>
-                        {!collapsed && <span className="logo-text">AI Strategist</span>}
                     </div>
-                    <button
-                        className="sidebar-toggle"
-                        onClick={onToggleCollapse}
-                        aria-label="Toggle sidebar"
-                    >
-                        {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-                    </button>
-                </div>
 
-                <nav className="sidebar-nav">
+                    <nav className="sidebar-nav">
                     {navItems.map((item) => (
                         <NavLink
                             key={item.to}
@@ -83,6 +77,15 @@ export default function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggle
                         {!collapsed && <span>Log Out</span>}
                     </button>
                 </div>
+                </div>
+
+                <button
+                    className="sidebar-toggle"
+                    onClick={onToggleCollapse}
+                    aria-label="Toggle sidebar"
+                >
+                    {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                </button>
             </aside>
         </>
     );
