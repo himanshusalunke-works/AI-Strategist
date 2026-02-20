@@ -1,10 +1,27 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Settings as SettingsIcon, User } from 'lucide-react';
+import { Settings as SettingsIcon, User, Save, CheckCircle } from 'lucide-react';
 import './Settings.css';
 
 export default function Settings() {
-    const { user } = useAuth();
+    const { user, updateProfile } = useAuth();
+    const [name, setName] = useState(user?.name || '');
+    const [isSaving, setIsSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
+
+    const handleSaveProfile = async (e) => {
+        e.preventDefault();
+        try {
+            setIsSaving(true);
+            await updateProfile({ name });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+        } catch (error) {
+            console.error('Failed to update profile:', error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     return (
         <div className="settings-page">
@@ -21,14 +38,27 @@ export default function Settings() {
                     <User size={20} color="var(--color-indigo)" />
                     <h3>Profile</h3>
                 </div>
-                <div className="settings-field">
-                    <label>Name</label>
-                    <input className="input-field" value={user?.name || ''} readOnly />
-                </div>
-                <div className="settings-field">
-                    <label>Email</label>
-                    <input className="input-field" value={user?.email || ''} readOnly />
-                </div>
+                <form onSubmit={handleSaveProfile}>
+                    <div className="settings-field">
+                        <label>Name</label>
+                        <input 
+                            className="input-field" 
+                            value={name} 
+                            onChange={(e) => setName(e.target.value)} 
+                            placeholder="Your name"
+                        />
+                    </div>
+                    <div className="settings-field">
+                        <label>Email</label>
+                        <input className="input-field" value={user?.email || ''} readOnly disabled style={{background: 'var(--bg-page)', cursor: 'not-allowed'}} />
+                    </div>
+                    <div className="settings-actions" style={{ marginTop: '16px' }}>
+                        <button type="submit" className="btn btn-primary" disabled={isSaving}>
+                            {isSaving ? <><div className="spinner"></div> Saving...</> : 
+                             saved ? <><CheckCircle size={16} /> Saved!</> : <><Save size={16} /> Save Profile</>}
+                        </button>
+                    </div>
+                </form>
             </div>
 
             {/* About */}

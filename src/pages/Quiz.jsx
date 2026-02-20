@@ -42,9 +42,9 @@ export default function Quiz() {
                 const topicId = searchParams.get('topicId');
                 const topicName = searchParams.get('topicName');
                 if (topicId && topicName) {
-                    startQuiz({ id: topicId, name: topicName });
-                }
-            } catch (err) {
+                    const fullTopic = topicsData.find(t => t.id === topicId);
+                    startQuiz(fullTopic || { id: topicId, name: topicName });
+                }            } catch (err) {
                 console.error('Failed to load quiz data:', err);
             } finally {
                 setLoading(false);

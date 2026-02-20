@@ -49,6 +49,16 @@
     font-size: 1.05rem;
     color: var(--text-inverse);
     white-space: nowrap;
+    opacity: 1;
+    transition: opacity var(--transition-short, 0.2s) ease, max-width var(--transition-short, 0.2s) ease;
+    overflow: hidden;
+    max-width: 150px;
+}
+
+.sidebar-collapsed .logo-text {
+    opacity: 0;
+    max-width: 0;
+    pointer-events: none;
 }
 
 .sidebar-toggle {
@@ -83,6 +93,7 @@
 }
 
 .sidebar-link {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -98,6 +109,19 @@
     width: 100%;
     text-align: left;
     cursor: pointer;
+    overflow: hidden;
+}
+
+.sidebar-label {
+    opacity: 1;
+    white-space: nowrap;
+    transition: opacity var(--transition-short, 0.2s) ease, width var(--transition-short, 0.2s) ease;
+}
+
+.sidebar-collapsed .sidebar-label {
+    opacity: 0;
+    width: 0;
+    pointer-events: none;
 }
 
 .sidebar-link:hover {

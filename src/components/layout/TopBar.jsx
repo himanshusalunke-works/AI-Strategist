@@ -1,11 +1,33 @@
 import { useAuth } from '../../context/AuthContext';
 import { getGreeting, getDaysUntilExam } from '../../lib/readiness';
 import { mockSubjects } from '../../lib/mockData';
-import { Clock, Bell, User, Menu } from 'lucide-react';
+import { Clock, Bell, User, Menu, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import './TopBar.css';
 
 export default function TopBar({ onMenuToggle }) {
     const { user } = useAuth();
+    const [showNotifications, setShowNotifications] = useState(false);
+    const notificationsRef = useRef(null);
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+                setShowNotifications(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Mock notifications
+    const mockNotifications = [
+        { id: 1, title: 'Calculus Quiz Available', time: '10m ago', read: false },
+        { id: 2, title: 'Study Goal Reached!', time: '1h ago', read: false },
+        { id: 3, title: 'New Physics Topic Unlocked', time: '2h ago', read: true }
+    ];
+
     const subjects = mockSubjects.getAll();
 
     // Find nearest exam
@@ -45,10 +67,40 @@ export default function TopBar({ onMenuToggle }) {
                         </span>
                     </div>
                 )}
-                <button className="topbar-icon-btn" aria-label="Notifications">
-                    <Bell size={18} />
-                    <span className="notification-dot"></span>
-                </button>
+                <div className="topbar-notification-wrapper" ref={notificationsRef}>
+                    <button 
+                        className="topbar-icon-btn" 
+                        aria-label="Notifications"
+                        onClick={() => setShowNotifications(!showNotifications)}
+                    >
+                        <Bell size={18} />
+                        <span className="notification-dot"></span>
+                    </button>
+                    
+                    {showNotifications && (
+                        <div className="notification-dropdown animate-fade-in">
+                            <div className="notification-header">
+                                <h3>Notifications</h3>
+                                <button className="close-btn" onClick={() => setShowNotifications(false)}>
+                                    <X size={16} />
+                                </button>
+                            </div>
+                            <div className="notification-list">
+                                {mockNotifications.map(notif => (
+                                    <div key={notif.id} className={`notification-item ${!notif.read ? 'unread' : ''}`}>
+                                        <div className="notification-content">
+                                            <p className="notification-title">{notif.title}</p>
+                                            <span className="notification-time">{notif.time}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="notification-footer">
+                                <button className="mark-all-read">Mark all as read</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
                 <div className="topbar-avatar">
                     <User size={18} />
                 </div>

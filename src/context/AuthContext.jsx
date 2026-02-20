@@ -55,6 +55,20 @@ export function AuthProvider({ children }) {
         return { user: data.user };
     };
 
+    const updateProfile = async (updates) => {
+        const { data, error } = await supabase.auth.updateUser({
+            data: updates
+        });
+        if (error) throw error;
+        if (data.user) {
+            setUser(prev => ({
+                ...prev,
+                name: data.user.user_metadata?.name || prev.name
+            }));
+        }
+        return data.user;
+    };
+
     const signIn = async ({ email, password }) => {
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
@@ -77,7 +91,7 @@ export function AuthProvider({ children }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+        <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, updateProfile }}>
             {children}
         </AuthContext.Provider>
     );

@@ -35,7 +35,7 @@ export default function Sidebar() {
                     <div className="logo-icon">
                         <Brain size={24} />
                     </div>
-                    {!collapsed && <span className="logo-text">AI Strategist</span>}
+                    <span className="logo-text">AI Strategist</span>
                 </div>
                 <button
                     className="sidebar-toggle"
@@ -55,17 +55,22 @@ export default function Sidebar() {
                         className={({ isActive }) =>
                             `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
                         }
+                        title={collapsed ? item.label : undefined}
                     >
-                        <item.icon size={20} />
-                        {!collapsed && <span>{item.label}</span>}
+                        <item.icon size={20} min-width={20} />
+                        <span className="sidebar-label">{item.label}</span>
                     </NavLink>
                 ))}
             </nav>
 
             <div className="sidebar-footer">
-                <button className="sidebar-link sidebar-logout" onClick={signOut}>
-                    <LogOut size={20} />
-                    {!collapsed && <span>Log Out</span>}
+                <button 
+                    className="sidebar-link sidebar-logout" 
+                    onClick={signOut}
+                    title={collapsed ? "Log Out" : undefined}
+                >
+                    <LogOut size={20} min-width={20} />
+                    <span className="sidebar-label">Log Out</span>
                 </button>
             </div>
         </aside>
