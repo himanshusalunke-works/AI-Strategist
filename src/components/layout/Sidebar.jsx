@@ -26,6 +26,14 @@ const navItems = [
 export default function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse }) {
     const { signOut } = useAuth();
 
+    const handleSignOut = async () => {
+        try {
+            await signOut();
+        } catch (err) {
+            console.error('Sign out failed:', err);
+        }
+    };
+
     const handleNavClick = () => {
         if (mobileOpen && onMobileClose) {
             onMobileClose();
@@ -69,7 +77,7 @@ export default function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggle
                 <div className="sidebar-footer">
                     <button
                         className="sidebar-link sidebar-logout"
-                        onClick={signOut}
+                        onClick={handleSignOut}
                         title={collapsed ? 'Log Out' : undefined}
                     >
                         <span className="sidebar-icon"><LogOut size={20} /></span>

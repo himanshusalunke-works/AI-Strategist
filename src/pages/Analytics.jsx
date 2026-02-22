@@ -23,22 +23,25 @@ export default function Analytics() {
                 const allSubjects = await subjectsApi.getAll();
                 setSubjects(allSubjects);
                 if (allSubjects.length > 0) {
-                    setSelectedSubject(allSubjects[0]);
+                    const first = allSubjects[0];
+                    setSelectedSubject(first);
+                    // Load topics + attempts in parallel right away
+                    const [subTopics, attempts] = await Promise.all([
+                        topicsApi.getBySubject(first.id),
+                        quizApi.getAllAttempts()
+                    ]);
+                    setTopics(subTopics);
+                    setAllAttempts(attempts);
+                    setReadiness(calculateReadiness(subTopics));
                 }
             } catch (err) {
-                console.error('Failed to load subjects:', err);
+                console.error('Failed to load analytics:', err);
             } finally {
                 setLoading(false);
             }
         };
         init();
     }, []);
-
-    useEffect(() => {
-        if (selectedSubject) {
-            loadSubjectData(selectedSubject.id);
-        }
-    }, [selectedSubject]);
 
     const loadSubjectData = async (subjectId) => {
         try {
@@ -146,7 +149,7 @@ export default function Analytics() {
                         <button
                             key={s.id}
                             className={`subject-tab ${selectedSubject?.id === s.id ? 'subject-tab-active' : ''}`}
-                            onClick={() => setSelectedSubject(s)}
+                            onClick={() => { setSelectedSubject(s); loadSubjectData(s.id); }}
                         >
                             {s.name}
                         </button>

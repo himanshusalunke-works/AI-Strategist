@@ -37,25 +37,30 @@ Deno.serve(async (req) => {
       .map((t) => `- ${t.name}: mastery ${t.mastery_score}%`)
       .join("\n");
 
-    const systemPrompt = `You are an expert study planner. Create a ${scheduleDays}-day study schedule for a student. Return ONLY valid JSON in the exact format requested.
+    const systemPrompt = `You are an expert study coach and subject matter tutor. Create a ${scheduleDays}-day study schedule for a student preparing for their exam in ${daysUntil} days.
 
-Constraints:
-- Exam is in ${daysUntil} days
-- Student can study ${dailyHours} hours/day (${dailyHours * 60} minutes)
-- Prioritize weak topics (< 60% mastery)
-- Balance workload across days
+Core rules:
+- Student can study ${dailyHours} hours/day (${dailyHours * 60} minutes total per day)
+- Prioritize weak topics (< 60% mastery) but don't ignore stronger ones
+- Balance the workload — spread topics across days, don't dump everything on Day 1
 - Give more time to topics with lowest mastery
-- For the "reason" field, categorize and explain based on mastery:
-  * < 40%: "Critical: Very low mastery. Needs intensive practice."
-  * < 60%: "High priority: Below passing threshold. Focus on fundamentals."
-  * < 80%: "Moderate: Good progress but room for improvement."
-  * >= 80%: "Review: Strong mastery. Light revision to maintain knowledge."
-  Append a brief tip specific to the topic.
+
+CRITICAL — The "reason" field must be EDUCATIONAL and DAY-SPECIFIC:
+- Each reason must be a UNIQUE, actionable study tip for THAT topic on THAT specific day
+- Use day-progressive framing: Day 1 → build foundations, Day 2 → practice problems, Day 3 → deepen understanding, Day 4+ → application and edge cases
+- Make it TOPIC-SPECIFIC: mention the actual concept, formula, or skill the student should work on TODAY
+- End every reason with: "Key point: [one clear, concise fact or concept the student must be able to explain after this session]"
+- NEVER repeat the same reason for the same topic on different days
+- Keep each reason to 2 sentences maximum
+
+Example of a GOOD reason: "Day 2 – Newton's Laws: Today, work through 10 application problems involving friction and inclined planes using free-body diagrams. Key point: Net force = mass × acceleration applies in every direction independently."
+
+Example of a BAD reason (do NOT do this): "High priority: Below passing threshold. Focus on fundamentals."
 
 Return EXACTLY this JSON structure:
 {
   "Day 1": [
-    {"topic": "Topic Name", "duration": 60, "reason": "Explanation"}
+    {"topic": "Topic Name", "duration": 60, "reason": "Day 1 – Topic: ...study tip... Key point: ...concept..."}
   ]
 }
 Each day's total duration must not exceed ${dailyHours * 60} minutes.`;
@@ -97,7 +102,15 @@ Each day's total duration must not exceed ${dailyHours * 60} minutes.`;
       );
     }
 
-    const schedule = JSON.parse(jsonMatch[0]);
+    let schedule;
+    try {
+      schedule = JSON.parse(jsonMatch[0]);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Malformed JSON in Groq response" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     return new Response(
       JSON.stringify({ schedule }),

@@ -1,53 +1,80 @@
 /**
  * Supabase API Layer
  * Centralized CRUD operations for all database tables.
- * Replaces mockData.js with real Supabase calls.
  */
 
 import { supabase } from './supabase';
+
+/**
+ * Returns the current user ID from the LOCAL session cache — no network call.
+ * supabase.auth.getUser() hits the Supabase auth server every time (slow).
+ * supabase.auth.getSession() reads from memory/localStorage (instant).
+ */
+async function getUserId() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) throw new Error('User not authenticated');
+    return session.user.id;
+}
+
+// ============================================
+// In-memory cache  (stale-while-revalidate)
+// ============================================
+// Caching read results means navigating back to a page is instant —
+// the cached value renders immediately, while a background refresh
+// updates the data silently.  TTL of 45 s is short enough to stay
+// fresh but long enough to cover all in-session navigation.
+
+const _cache   = new Map();
+const CACHE_TTL = 45_000; // ms
+
+function cacheGet(key) {
+    const entry = _cache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.ts > CACHE_TTL) { _cache.delete(key); return null; }
+    return entry.data;
+}
+function cacheSet(key, data)   { _cache.set(key, { data, ts: Date.now() }); }
+function cacheInvalidate(pat)  { for (const k of _cache.keys()) if (k.includes(pat)) _cache.delete(k); }
+
 
 // ============================================
 // SUBJECTS
 // ============================================
 
 export const subjectsApi = {
-    /** Get all subjects for the current user */
     async getAll() {
-        // Ensure session is active before query
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
-
+        const cached = cacheGet('subjects:all');
+        if (cached) return cached;
+        const userId = await getUserId();
         const { data, error } = await supabase
             .from('subjects')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .order('created_at', { ascending: false });
         if (error) throw error;
-        return data || [];
+        const result = data || [];
+        cacheSet('subjects:all', result);
+        return result;
     },
 
-    /** Get a single subject by ID */
     async getById(id) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
-
+        const userId = await getUserId();
         const { data, error } = await supabase
             .from('subjects')
             .select('*')
             .eq('id', id)
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .single();
         if (error) throw error;
         return data;
     },
 
-    /** Create a new subject */
     async create({ name, exam_date, daily_study_hours }) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const userId = await getUserId();
         const { data, error } = await supabase
             .from('subjects')
             .insert({
-                user_id: user.id,
+                user_id: userId,
                 name,
                 exam_date,
                 daily_study_hours: Number(daily_study_hours)
@@ -55,10 +82,10 @@ export const subjectsApi = {
             .select()
             .single();
         if (error) throw error;
+        cacheInvalidate('subjects');
         return data;
     },
 
-    /** Update a subject */
     async update(id, updates) {
         const { data, error } = await supabase
             .from('subjects')
@@ -67,16 +94,19 @@ export const subjectsApi = {
             .select()
             .single();
         if (error) throw error;
+        cacheInvalidate('subjects');
         return data;
     },
 
-    /** Delete a subject (cascades to topics, quiz_attempts, schedules) */
     async delete(id) {
         const { error } = await supabase
             .from('subjects')
             .delete()
             .eq('id', id);
         if (error) throw error;
+        cacheInvalidate('subjects');
+        cacheInvalidate('topics:sub:' + id);
+        cacheInvalidate('schedule:' + id);
     }
 };
 
@@ -85,52 +115,48 @@ export const subjectsApi = {
 // ============================================
 
 export const topicsApi = {
-    /** Get all topics for a subject */
     async getBySubject(subjectId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
-
+        const key = 'topics:sub:' + subjectId;
+        const cached = cacheGet(key);
+        if (cached) return cached;
         const { data, error } = await supabase
             .from('topics')
             .select('*')
             .eq('subject_id', subjectId)
-            // Note: RLS on topics should verify through subject_id matching user_id
             .order('created_at', { ascending: true });
         if (error) throw error;
-        return data || [];
+        const result = data || [];
+        cacheSet(key, result);
+        return result;
     },
 
-    /** Get all topics for the current user (across all subjects) */
     async getAll() {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
-
+        const cached = cacheGet('topics:all');
+        if (cached) return cached;
+        const userId = await getUserId();
         const { data, error } = await supabase
             .from('topics')
             .select('*, subjects!inner(user_id)')
-            .eq('subjects.user_id', user.id)
+            .eq('subjects.user_id', userId)
             .order('created_at', { ascending: true });
         if (error) throw error;
-        // Flatten — remove the joined subjects object
-        return (data || []).map(({ subjects, ...topic }) => topic);
+        const result = (data || []).map(({ subjects, ...topic }) => topic);
+        cacheSet('topics:all', result);
+        return result;
     },
 
-    /** Get a single topic by ID */
     async getById(id) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
-
+        const userId = await getUserId();
         const { data, error } = await supabase
             .from('topics')
             .select('*, subjects!inner(user_id)')
             .eq('id', id)
-            .eq('subjects.user_id', user.id)
+            .eq('subjects.user_id', userId)
             .single();
         if (error) throw error;
         return data;
     },
 
-    /** Create a new topic */
     async create({ subject_id, name }) {
         const { data, error } = await supabase
             .from('topics')
@@ -138,10 +164,11 @@ export const topicsApi = {
             .select()
             .single();
         if (error) throw error;
+        cacheInvalidate('topics:sub:' + subject_id);
+        cacheInvalidate('topics:all');
         return data;
     },
 
-    /** Update a topic */
     async update(id, updates) {
         const { data, error } = await supabase
             .from('topics')
@@ -150,24 +177,21 @@ export const topicsApi = {
             .select()
             .single();
         if (error) throw error;
+        // topic id can't tell us subject_id here, flush all topic caches
+        cacheInvalidate('topics:');
         return data;
     },
 
-    /** Delete a topic */
     async delete(id) {
         const { error } = await supabase
             .from('topics')
             .delete()
             .eq('id', id);
         if (error) throw error;
+        cacheInvalidate('topics:');
     },
 
-    /**
-     * Update mastery score after a quiz attempt.
-     * Formula: newMastery = Math.round((previousMastery + newAccuracy) / 2)
-     */
     async updateMastery(id, newAccuracy) {
-        // First get current topic data
         const topic = await this.getById(id);
         if (!topic) throw new Error('Topic not found');
 
@@ -185,6 +209,8 @@ export const topicsApi = {
             .select()
             .single();
         if (error) throw error;
+        // Mastery changed — flush topic caches so dashboard shows fresh scores
+        cacheInvalidate('topics:');
         return data;
     }
 };
@@ -194,54 +220,44 @@ export const topicsApi = {
 // ============================================
 
 export const quizApi = {
-    /**
-     * Record a quiz attempt and update topic mastery.
-     * Returns the updated topic data.
-     */
-    async recordAttempt({ topic_id, accuracy, time_taken_seconds }) {
-        const { data: { user } } = await supabase.auth.getUser();
+    async recordAttempt({ topic_id, accuracy, time_taken_seconds, questions_data }) {
+        const userId = await getUserId();
 
-        // Insert the attempt
         const { data: attempt, error } = await supabase
             .from('quiz_attempts')
             .insert({
                 topic_id,
-                user_id: user.id,
+                user_id: userId,
                 accuracy,
-                time_taken_seconds: time_taken_seconds || null
+                time_taken_seconds: time_taken_seconds || null,
+                questions_data: questions_data || null,   // full Q&A snapshot
             })
             .select()
             .single();
         if (error) throw error;
 
-        // Update topic mastery
         const updatedTopic = await topicsApi.updateMastery(topic_id, accuracy);
-
         return { attempt, updatedTopic };
     },
 
-    /** Get all quiz attempts for a specific topic */
     async getAttemptsByTopic(topicId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
-
+        const userId = await getUserId();
         const { data, error } = await supabase
             .from('quiz_attempts')
             .select('*')
             .eq('topic_id', topicId)
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .order('attempted_at', { ascending: true });
         if (error) throw error;
         return data || [];
     },
 
-    /** Get all quiz attempts for the current user */
     async getAllAttempts() {
-        const { data: { user } } = await supabase.auth.getUser();
+        const userId = await getUserId();
         const { data, error } = await supabase
             .from('quiz_attempts')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .order('attempted_at', { ascending: true });
         if (error) throw error;
         return data || [];
@@ -253,16 +269,13 @@ export const quizApi = {
 // ============================================
 
 export const schedulesApi = {
-    /** Get the latest schedule for a subject */
     async getBySubject(subjectId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
-
+        const userId = await getUserId();
         const { data, error } = await supabase
             .from('schedules')
             .select('*')
             .eq('subject_id', subjectId)
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .order('generated_at', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -270,22 +283,19 @@ export const schedulesApi = {
         return data;
     },
 
-    /** Save a new schedule (replaces old one for that subject) */
     async save({ subject_id, schedule_data }) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const userId = await getUserId();
 
-        // Delete old schedules for this subject
         await supabase
             .from('schedules')
             .delete()
             .eq('subject_id', subject_id)
-            .eq('user_id', user.id);
+            .eq('user_id', userId);
 
-        // Insert new schedule
         const { data, error } = await supabase
             .from('schedules')
             .insert({
-                user_id: user.id,
+                user_id: userId,
                 subject_id,
                 schedule_data
             })
@@ -301,29 +311,23 @@ export const schedulesApi = {
 // ============================================
 
 export const aiLogsApi = {
-    /** 
-     * Insert a new AI generation log to keep an audit trail.
-     * @param {Object} log - { subject_id, prompt_used, ai_output }
-     */
     async insert({ subject_id, prompt_used, ai_output }) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
+        const userId = await getUserId();
 
         const { data, error } = await supabase
             .from('ai_logs')
             .insert({
-                user_id: user.id,
-                subject_id: subject_id || null, // Optional connection to subject
+                user_id: userId,
+                subject_id: subject_id || null,
                 prompt_used,
                 ai_output
             })
             .select()
             .single();
-            
+
         if (error) {
             console.error('Failed to insert AI log:', error);
-            // We usually don't want a logging failure to crash the whole app flow
-            return null; 
+            return null;
         }
         return data;
     }

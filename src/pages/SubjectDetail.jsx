@@ -23,10 +23,13 @@ export default function SubjectDetail() {
 
     const loadData = async () => {
         try {
-            const s = await subjectsApi.getById(id);
+            // Fetch subject and its topics in parallel
+            const [s, t] = await Promise.all([
+                subjectsApi.getById(id),
+                topicsApi.getBySubject(id),
+            ]);
             if (!s) { navigate('/subjects'); return; }
             setSubject(s);
-            const t = await topicsApi.getBySubject(id);
             setTopics(t);
         } catch (err) {
             console.error('Failed to load subject:', err);

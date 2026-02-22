@@ -21,34 +21,57 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const loadSubjects = async () => {
+        const loadAll = async () => {
             try {
                 const allSubjects = await subjectsApi.getAll();
                 setSubjects(allSubjects);
+
                 if (allSubjects.length > 0) {
-                    setSelectedSubject(allSubjects[0]);
+                    const first = allSubjects[0];
+                    setSelectedSubject(first);
+
+                    // Load topics and schedule in parallel — not sequentially
+                    const [subTopics, sched] = await Promise.all([
+                        topicsApi.getBySubject(first.id),
+                        schedulesApi.getBySubject(first.id),
+                    ]);
+                    setTopics(subTopics);
+                    setReadiness(calculateReadiness(subTopics, first.exam_date));
+                    setSchedule(sched?.schedule_data || null);
                 }
             } catch (err) {
-                console.error('Failed to load subjects:', err);
+                console.error('Failed to load dashboard:', err);
             } finally {
                 setLoading(false);
             }
         };
-        loadSubjects();
+        loadAll();
     }, []);
 
-    useEffect(() => {
-        if (selectedSubject) {
-            loadSubjectData(selectedSubject.id);
+    // When user switches subject tab, reload topics+schedule in parallel
+    const handleSelectSubject = async (subject) => {
+        setSelectedSubject(subject);
+        try {
+            const [subTopics, sched] = await Promise.all([
+                topicsApi.getBySubject(subject.id),
+                schedulesApi.getBySubject(subject.id),
+            ]);
+            setTopics(subTopics);
+            setReadiness(calculateReadiness(subTopics, subject.exam_date));
+            setSchedule(sched?.schedule_data || null);
+        } catch (err) {
+            console.error('Failed to load subject data:', err);
         }
-    }, [selectedSubject]);
+    };
 
     const loadSubjectData = async (subjectId) => {
         try {
-            const subTopics = await topicsApi.getBySubject(subjectId);
+            const [subTopics, sched] = await Promise.all([
+                topicsApi.getBySubject(subjectId),
+                schedulesApi.getBySubject(subjectId),
+            ]);
             setTopics(subTopics);
             setReadiness(calculateReadiness(subTopics, selectedSubject.exam_date));
-            const sched = await schedulesApi.getBySubject(subjectId);
             setSchedule(sched?.schedule_data || null);
         } catch (err) {
             console.error('Failed to load subject data:', err);
@@ -99,7 +122,7 @@ export default function Dashboard() {
                         <button
                             key={s.id}
                             className={`subject-tab ${selectedSubject?.id === s.id ? 'subject-tab-active' : ''}`}
-                            onClick={() => setSelectedSubject(s)}
+                            onClick={() => handleSelectSubject(s)}
                         >
                             {s.name}
                         </button>

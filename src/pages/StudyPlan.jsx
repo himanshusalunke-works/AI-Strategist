@@ -42,9 +42,12 @@ export default function StudyPlan() {
   const selectSubject = async (subject) => {
     setSelectedSubject(subject);
     try {
-      const subTopics = await topicsApi.getBySubject(subject.id);
+      // Load topics and existing schedule in parallel
+      const [subTopics, sched] = await Promise.all([
+        topicsApi.getBySubject(subject.id),
+        schedulesApi.getBySubject(subject.id),
+      ]);
       setTopics(subTopics);
-      const sched = await schedulesApi.getBySubject(subject.id);
       if (sched?.schedule_data) {
         setSchedule(sched.schedule_data);
         const days = Object.keys(sched.schedule_data);

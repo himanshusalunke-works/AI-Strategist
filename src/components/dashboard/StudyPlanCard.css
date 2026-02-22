@@ -1,3 +1,4 @@
+/* ===== Study Plan Card ===== */
 .study-plan-card {
     position: relative;
     overflow: hidden;
@@ -6,17 +7,25 @@
 .study-plan-card::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 3px;
     background: linear-gradient(90deg, var(--color-indigo), var(--color-teal), var(--color-indigo-light));
 }
 
-.sparkle-icon {
-    color: var(--color-teal);
+.sparkle-icon { color: var(--color-teal); }
+
+/* ---- Error banner ---- */
+.plan-error-banner {
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-sm);
+    color: var(--color-red);
+    font-size: 0.84rem;
 }
 
+/* ---- Empty state ---- */
 .plan-empty {
     text-align: center;
     padding: 40px 20px;
@@ -39,123 +48,180 @@
     font-size: 0.88rem;
     max-width: 400px;
     margin: 0 auto;
+    line-height: 1.6;
 }
 
-.plan-days {
+/* ===== Calendar Grid ===== */
+.plan-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    margin-top: 4px;
+}
+
+/* ---- Calendar Day Cell ---- */
+.plan-cal-cell {
+    border: 1.5px solid;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-.plan-day {
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    overflow: hidden;
+.plan-cal-cell:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
-.plan-day-header {
+/* Day cell header bar */
+.plan-cal-cell-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 100%;
-    padding: 14px 16px;
-    background: rgba(79, 70, 229, 0.03);
-    color: var(--text-primary);
-    font-weight: 600;
-    text-align: left;
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.plan-day-header:hover {
-    background: rgba(79, 70, 229, 0.06);
-}
-
-.plan-day-label {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.plan-day-number {
+.plan-cal-day-label {
     font-family: var(--font-heading);
-    font-size: 0.95rem;
-    color: var(--color-indigo);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
 }
 
-.plan-day-count {
-    font-size: 0.78rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-
-.plan-day-items {
-    padding: 8px 16px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.plan-item {
-    padding: 10px 12px;
-    background: var(--bg-page);
-    border-radius: var(--radius-sm);
-}
-
-.plan-item-main {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.plan-item-icon {
-    color: var(--color-indigo);
-    flex-shrink: 0;
-}
-
-.plan-item-topic {
-    flex: 1;
-    font-size: 0.88rem;
-    font-weight: 600;
-}
-
-.plan-item-duration {
+.plan-cal-day-meta {
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    background: white;
-    padding: 3px 10px;
-    border-radius: var(--radius-full);
-    white-space: nowrap;
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+    font-weight: 500;
 }
 
-.plan-item-reason-toggle {
-    font-size: 0.75rem;
-    color: var(--color-teal);
-    background: none;
-    padding: 4px 0;
+/* Topic chips container */
+.plan-cal-topics {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 10px 4px;
+    flex: 1;
+}
+
+.plan-cal-topic-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Individual topic chip button */
+.plan-cal-topic-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    text-align: left;
+    transition: background 0.15s, border-color 0.15s;
+    width: 100%;
+    cursor: pointer;
+}
+
+.light-theme .plan-cal-topic-chip {
+    background: rgba(255, 255, 255, 0.75);
+}
+
+.plan-cal-topic-chip:hover,
+.plan-cal-topic-chip-open {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(0, 0, 0, 0.12);
+}
+
+.plan-cal-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.plan-cal-topic-name {
+    flex: 1;
+    font-size: 0.8rem;
     font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
 }
 
-.plan-item-reason-toggle:hover {
-    text-decoration: underline;
+.plan-cal-chip-dur {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
 }
 
-.plan-item-reason {
+/* Expanded study tip */
+.plan-cal-reason {
     display: flex;
     align-items: flex-start;
-    gap: 6px;
-    margin-top: 6px;
-    padding: 8px 10px;
-    background: rgba(6, 182, 212, 0.06);
+    gap: 7px;
+    margin-top: 5px;
+    padding: 9px 10px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: var(--radius-sm);
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
 }
 
-.plan-item-reason svg {
+.plan-cal-reason-icon {
     color: var(--color-teal);
     flex-shrink: 0;
     margin-top: 2px;
+}
+
+.plan-cal-reason p {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin: 0;
+}
+
+/* Cell footer */
+.plan-cal-cell-footer {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px 8px;
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+    .plan-calendar-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+    }
+}
+
+@media (max-width: 600px) {
+    .plan-calendar-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+}
+
+@media (max-width: 400px) {
+    .plan-calendar-grid {
+        grid-template-columns: 1fr;
+    }
 }

@@ -1,17 +1,26 @@
 import { useState, useEffect } from 'react';
 import { schedulesApi } from '../../lib/api';
 import { generateScheduleWithAI } from '../../lib/scheduleGenerator';
-import { Sparkles, RefreshCw, ChevronDown, ChevronUp, Clock, BookOpen } from 'lucide-react';
+import { Sparkles, RefreshCw, Clock, BookOpen, Lightbulb } from 'lucide-react';
 import './StudyPlanCard.css';
 
-export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) {
-    const [loading, setLoading] = useState(false);
-    const [expandedDay, setExpandedDay] = useState(null);
-    const [expandedReasons, setExpandedReasons] = useState({});
-    const [cooldownTime, setCooldownTime] = useState(0);
-    const [apiError, setApiError] = useState(null);
+// Colour cycling for calendar day cells
+const DAY_ACCENT_COLORS = [
+    { bg: 'rgba(79,70,229,0.08)',  border: 'rgba(79,70,229,0.25)',  header: 'rgba(79,70,229,0.12)',  dot: '#4F46E5' },
+    { bg: 'rgba(6,182,212,0.07)',  border: 'rgba(6,182,212,0.25)',  header: 'rgba(6,182,212,0.12)',  dot: '#06B6D4' },
+    { bg: 'rgba(34,197,94,0.07)',  border: 'rgba(34,197,94,0.25)',  header: 'rgba(34,197,94,0.12)',  dot: '#22C55E' },
+    { bg: 'rgba(245,158,11,0.07)', border: 'rgba(245,158,11,0.25)', header: 'rgba(245,158,11,0.12)', dot: '#F59E0B' },
+    { bg: 'rgba(236,72,153,0.07)', border: 'rgba(236,72,153,0.25)', header: 'rgba(236,72,153,0.12)', dot: '#EC4899' },
+    { bg: 'rgba(139,92,246,0.07)', border: 'rgba(139,92,246,0.25)', header: 'rgba(139,92,246,0.12)', dot: '#8B5CF6' },
+    { bg: 'rgba(20,184,166,0.07)', border: 'rgba(20,184,166,0.25)', header: 'rgba(20,184,166,0.12)', dot: '#14B8A6' },
+];
 
-    // Cooldown timer effect
+export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) {
+    const [loading, setLoading]               = useState(false);
+    const [expandedItem, setExpandedItem]     = useState(null); // `${dayKey}-${idx}`
+    const [cooldownTime, setCooldownTime]     = useState(0);
+    const [apiError, setApiError]             = useState(null);
+
     useEffect(() => {
         if (cooldownTime > 0) {
             const timer = setTimeout(() => setCooldownTime(c => c - 1), 1000);
@@ -21,25 +30,22 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
 
     const handleGenerate = async () => {
         if (loading || cooldownTime > 0) return;
-        
         setLoading(true);
         setApiError(null);
         try {
-            const scheduleData = await generateScheduleWithAI(topics, subject.exam_date, subject.daily_study_hours, subject.id);
-
-            await schedulesApi.save({
-                subject_id: subject.id,
-                schedule_data: scheduleData
-            });
+            const scheduleData = await generateScheduleWithAI(
+                topics, subject.exam_date, subject.daily_study_hours, subject.id
+            );
+            await schedulesApi.save({ subject_id: subject.id, schedule_data: scheduleData });
             onRefresh();
-            setCooldownTime(10); // 10 second cooldown on success
+            setCooldownTime(10);
         } catch (error) {
             console.error('Schedule generation failed:', error);
             if (error.message?.includes('429') || error.status === 429) {
-                setApiError("Rate limit exceeded. Please wait a moment before trying again.");
-                setCooldownTime(10); // 10s backoff for rate limits
+                setApiError('Rate limit exceeded. Please wait a moment before trying again.');
+                setCooldownTime(10);
             } else {
-                setApiError("Failed to generate schedule. Please try again.");
+                setApiError('Failed to generate schedule. Please try again.');
                 setCooldownTime(5);
             }
         } finally {
@@ -47,15 +53,14 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
         }
     };
 
-    const toggleReason = (dayKey, idx) => {
-        const key = `${dayKey}-${idx}`;
-        setExpandedReasons(prev => ({ ...prev, [key]: !prev[key] }));
-    };
+    const toggleItem = (key) =>
+        setExpandedItem(prev => (prev === key ? null : key));
 
     const days = schedule ? Object.entries(schedule) : [];
 
     return (
         <div className="card study-plan-card animate-fade-in stagger-4">
+            {/* Header */}
             <div className="card-header">
                 <div>
                     <div className="card-title">
@@ -63,7 +68,9 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
                         AI Study Plan
                     </div>
                     <div className="card-subtitle">
-                        {schedule ? `${days.length}-day personalized schedule` : 'Generate your AI-powered study plan'}
+                        {schedule
+                            ? `${days.length}-day personalised schedule`
+                            : 'Generate your AI-powered study plan'}
                     </div>
                 </div>
                 <button
@@ -72,77 +79,100 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
                     disabled={loading || cooldownTime > 0}
                 >
                     {loading ? (
-                        <><div className="spinner"></div> Generating...</>
+                        <><div className="spinner" /> Generating...</>
                     ) : schedule ? (
-                        <><RefreshCw size={14} /> Regenerate</>
+                        <><RefreshCw size={14} /> {cooldownTime > 0 ? `Wait ${cooldownTime}s` : 'Regenerate'}</>
                     ) : (
                         <><Sparkles size={14} /> Generate Plan</>
                     )}
                 </button>
             </div>
-            
+
             {apiError && (
-                <div style={{ color: 'var(--color-red)', fontSize: '0.85rem', marginBottom: '16px', padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius-sm)' }}>
+                <div className="plan-error-banner">
                     {apiError} {cooldownTime > 0 ? `(Wait ${cooldownTime}s)` : ''}
                 </div>
             )}
-            
-            {cooldownTime > 0 && !apiError && !loading && (
-                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '16px', textAlign: 'right' }}>
-                     Please wait {cooldownTime}s before regenerating again.
-                 </div>
-            )}
 
+            {/* Empty state */}
             {!schedule ? (
                 <div className="plan-empty">
                     <Sparkles size={40} className="plan-empty-icon" />
                     <h3>No Study Plan Yet</h3>
-                    <p>Click "Generate Plan" to create a personalized, AI-optimized study schedule based on your topic mastery.</p>
+                    <p>Click "Generate Plan" to create an AI-optimised schedule based on your topic mastery.</p>
                 </div>
             ) : (
-                <div className="plan-days">
-                    {days.map(([dayKey, items], dayIdx) => (
-                        <div key={dayKey} className="plan-day">
-                            <button
-                                className="plan-day-header"
-                                onClick={() => setExpandedDay(expandedDay === dayKey ? null : dayKey)}
-                            >
-                                <div className="plan-day-label">
-                                    <span className="plan-day-number">{dayKey}</span>
-                                    <span className="plan-day-count">{items.length} topics · {items.reduce((s, i) => s + i.duration, 0)} min</span>
-                                </div>
-                                {expandedDay === dayKey ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                            </button>
+                /* ---- Calendar Grid ---- */
+                <div className="plan-calendar-grid">
+                    {days.map(([dayKey, items], dayIdx) => {
+                        const accent    = DAY_ACCENT_COLORS[dayIdx % DAY_ACCENT_COLORS.length];
+                        const totalMins = items.reduce((s, i) => s + i.duration, 0);
 
-                            {(expandedDay === dayKey || dayIdx < 2) && (
-                                <div className="plan-day-items">
-                                    {items.map((item, idx) => (
-                                        <div key={idx} className="plan-item">
-                                            <div className="plan-item-main">
-                                                <BookOpen size={14} className="plan-item-icon" />
-                                                <span className="plan-item-topic">{item.topic}</span>
-                                                <span className="plan-item-duration">
-                                                    <Clock size={12} /> {item.duration} min
-                                                </span>
-                                            </div>
-                                            <button
-                                                className="plan-item-reason-toggle"
-                                                onClick={() => toggleReason(dayKey, idx)}
-                                            >
-                                                {expandedReasons[`${dayKey}-${idx}`] ? 'Hide reason' : 'Why?'}
-                                            </button>
-                                            {expandedReasons[`${dayKey}-${idx}`] && (
-                                                <div className="plan-item-reason animate-fade-in">
-                                                    <Sparkles size={12} />
-                                                    {item.reason}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                        return (
+                            <div
+                                key={dayKey}
+                                className="plan-cal-cell"
+                                style={{
+                                    background:   accent.bg,
+                                    borderColor:  accent.border,
+                                }}
+                            >
+                                {/* Day header */}
+                                <div
+                                    className="plan-cal-cell-header"
+                                    style={{ background: accent.header }}
+                                >
+                                    <span className="plan-cal-day-label" style={{ color: accent.dot }}>
+                                        {dayKey}
+                                    </span>
+                                    <span className="plan-cal-day-meta">
+                                        <Clock size={11} /> {totalMins} min
+                                    </span>
                                 </div>
-                            )}
-                        </div>
-                    ))}
+
+                                {/* Topic chips */}
+                                <div className="plan-cal-topics">
+                                    {items.map((item, idx) => {
+                                        const key       = `${dayKey}-${idx}`;
+                                        const isOpen    = expandedItem === key;
+
+                                        return (
+                                            <div key={idx} className="plan-cal-topic-wrap">
+                                                <button
+                                                    className={`plan-cal-topic-chip ${isOpen ? 'plan-cal-topic-chip-open' : ''}`}
+                                                    onClick={() => toggleItem(key)}
+                                                    title="Click to see today's study tip"
+                                                >
+                                                    <span
+                                                        className="plan-cal-dot"
+                                                        style={{ background: accent.dot }}
+                                                    />
+                                                    <span className="plan-cal-topic-name">{item.topic}</span>
+                                                    <span className="plan-cal-chip-dur">
+                                                        {item.duration}m
+                                                    </span>
+                                                </button>
+
+                                                {/* Expandable reason tooltip */}
+                                                {isOpen && (
+                                                    <div className="plan-cal-reason animate-fade-in">
+                                                        <Lightbulb size={13} className="plan-cal-reason-icon" />
+                                                        <p>{item.reason}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Footer count */}
+                                <div className="plan-cal-cell-footer">
+                                    <BookOpen size={11} />
+                                    {items.length} {items.length === 1 ? 'topic' : 'topics'}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>

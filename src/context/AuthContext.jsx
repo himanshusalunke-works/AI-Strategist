@@ -35,16 +35,30 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Bug 2 fix: onAuthStateChange is the SINGLE source of truth.
-        // It fires INITIAL_SESSION on mount — no need for a separate getSession() call.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                if (session?.user) {
-                    const profile = await fetchProfile(session.user.id);
-                    setUser(buildUser(session.user, profile));
-                } else {
-                    setUser(null); // Bug 4 fix: state reset driven by auth event, not manual call
+                if (!session?.user) {
+                    setUser(null);
+                    setLoading(false);
+                    return;
                 }
+
+                // USER_UPDATED fires when supabase.auth.updateUser() is called (e.g. from
+                // updateProfile). We already applied an optimistic setUser in updateProfile,
+                // so skip the expensive fetchProfile round-trip here — just sync auth metadata.
+                if (event === 'USER_UPDATED') {
+                    setUser(prev => prev ? {
+                        ...prev,
+                        email: session.user.email,
+                        user_metadata: session.user.user_metadata || {},
+                    } : prev);
+                    setLoading(false);
+                    return;
+                }
+
+                // INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED, etc. — fetch full profile
+                const profile = await fetchProfile(session.user.id);
+                setUser(buildUser(session.user, profile));
                 setLoading(false);
             }
         );

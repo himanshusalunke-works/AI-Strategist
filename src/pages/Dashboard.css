@@ -40,6 +40,13 @@
     gap: 16px;
 }
 
+/* At medium widths, collapse to 2×2 instead of cramming 4 in one line */
+@media (max-width: 1100px) {
+    .dashboard-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 .stat-card {
     display: flex;
     align-items: center;

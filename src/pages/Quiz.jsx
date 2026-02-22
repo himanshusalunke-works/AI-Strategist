@@ -114,15 +114,26 @@ export default function Quiz() {
                 const accuracy = Math.round((totalCorrect / questions.length) * 100);
                 setScore(accuracy);
 
+                // Build full Q&A snapshot for storage
+                const questionsData = questions.map((q, idx) => ({
+                    question:      q.q,
+                    options:       q.options,
+                    correctIndex:  q.answer,
+                    selectedIndex: newAnswers[idx]?.selected ?? -1,  // -1 = timed out
+                    isCorrect:     newAnswers[idx]?.isCorrect ?? false,
+                }));
+
                 // Record attempt in Supabase
                 try {
                     const { updatedTopic } = await quizApi.recordAttempt({
-                        topic_id: selectedTopic.id,
-                        accuracy
+                        topic_id:       selectedTopic.id,
+                        accuracy,
+                        questions_data: questionsData,
                     });
                     setUpdatedMastery(updatedTopic?.mastery_score || 0);
                 } catch (err) {
                     console.error('Failed to record attempt:', err);
+
                     setUpdatedMastery(0);
                 }
 
