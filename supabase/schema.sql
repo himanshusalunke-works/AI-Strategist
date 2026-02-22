@@ -6,6 +6,89 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- ============================================
+-- User Profiles
+-- ============================================
+
+-- ---- Profiles ----
+-- One row per user. Created automatically via trigger on auth.users insert.
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id                 UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+
+  -- Basic info (synced from auth.users on creation)
+  name               TEXT,
+  email              TEXT,
+
+  -- Academic background (collected during onboarding)
+  board              TEXT,                     -- e.g. 'CBSE', 'IB', 'UPSC Entrance'
+  study_level        TEXT,                     -- e.g. 'School – Class 12', 'Undergraduate – Year 2'
+  university         TEXT,                     -- e.g. 'Delhi University'
+
+  -- Exam goals
+  target_exam        TEXT,                     -- e.g. 'JEE Advanced', 'NEET', 'GATE'
+  target_year        INTEGER,                  -- e.g. 2026
+  daily_hours        NUMERIC(4,1),             -- e.g. 4.5
+
+  -- Study preferences
+  learning_style     TEXT,                     -- 'Visual' | 'Auditory' | 'Reading/Writing' | 'Kinesthetic' | 'Mixed'
+
+  -- Onboarding state
+  onboarding_complete BOOLEAN DEFAULT FALSE,
+
+  -- Timestamps
+  created_at         TIMESTAMPTZ DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Auto-update updated_at on every row change
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER profiles_updated_at
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- Auto-create a profile row whenever a new user registers
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, email)
+  VALUES (
+    NEW.id,
+    NEW.raw_user_meta_data->>'name',
+    NEW.email
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- RLS
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own profile" ON public.profiles
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" ON public.profiles
+  FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert own profile" ON public.profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Index
+CREATE INDEX IF NOT EXISTS idx_profiles_id ON public.profiles(id);
+
+
+
 -- ---- Subjects ----
 CREATE TABLE IF NOT EXISTS subjects (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,

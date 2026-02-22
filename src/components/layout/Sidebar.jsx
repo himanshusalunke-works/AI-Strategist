@@ -15,7 +15,7 @@ import {
 import './Sidebar.css';
 
 const navItems = [
-    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/subjects', icon: BookOpen, label: 'Subjects' },
     { to: '/quiz', icon: FileQuestion, label: 'Quiz' },
     { to: '/study-plan', icon: Calendar, label: 'Study Plan' },
@@ -54,7 +54,6 @@ export default function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggle
                         <NavLink
                             key={item.to}
                             to={item.to}
-                            end={item.to === '/'}
                             className={({ isActive }) =>
                                 `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
                             }

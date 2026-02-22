@@ -18,12 +18,19 @@ export default function Register() {
         setError('');
         setLoading(true);
 
+        // Bug 6 fix: basic strength check — at least 8 chars, 1 letter, 1 number
+        if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+            setError('Password must be at least 8 characters and include a letter and a number.');
+            setLoading(false);
+            return;
+        }
+
         try {
             const { error: authError } = await signUp({ email, password, name });
             if (authError) {
                 setError(authError.message || 'Registration failed');
             } else {
-                navigate('/');
+                navigate('/onboarding');
             }
         } catch (err) {
             setError('Something went wrong. Please try again.');

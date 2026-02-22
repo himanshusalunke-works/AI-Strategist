@@ -22,7 +22,7 @@ export default function Login() {
             if (authError) {
                 setError(authError.message || 'Invalid credentials');
             } else {
-                navigate('/');
+                navigate('/dashboard');
             }
         } catch (err) {
             setError('Something went wrong. Please try again.');

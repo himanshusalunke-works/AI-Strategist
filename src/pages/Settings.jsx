@@ -29,11 +29,10 @@ const GRADIENTS = [
 
 export function getInitials(name, email) {
     if (name && name.trim()) {
-        return name.trim().split(' ').slice(0, 2).map(w => w[0].toUpperCase()).join('');
+        return name.trim().split(/\s+/).slice(0, 2).filter(w => w.length > 0).map(w => w[0].toUpperCase()).join('');
     }
     return (email || 'S').charAt(0).toUpperCase();
 }
-
 export function getAvatarGradient(letter) {
     const i = (letter.charCodeAt(0) || 0) % GRADIENTS.length;
     return `linear-gradient(135deg, ${GRADIENTS[i][0]}, ${GRADIENTS[i][1]})`;
