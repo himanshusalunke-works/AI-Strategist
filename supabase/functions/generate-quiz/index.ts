@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { topicName, topicId } = await req.json();
+    const { topicName, topicId, userContext = {} } = await req.json();
 
     if (!topicName) {
       return new Response(
@@ -28,13 +28,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    const systemPrompt = `Act as an expert tutor. Create exactly 5 high-quality, multiple-choice questions testing the academic topic provided by the user.
+    // Build a student profile string — only include fields that are actually set
+    const profileLines: string[] = [];
+    if (userContext.board)        profileLines.push(`- Board / Curriculum: ${userContext.board}`);
+    if (userContext.study_level)  profileLines.push(`- Study Level: ${userContext.study_level}`);
+    if (userContext.university)   profileLines.push(`- Institution: ${userContext.university}`);
+    if (userContext.target_exam)  profileLines.push(`- Target Exam: ${userContext.target_exam}`);
+
+    const studentProfile = profileLines.length > 0
+      ? `\n\nStudent profile (use this to calibrate difficulty, terminology, and syllabus):\n${profileLines.join("\n")}`
+      : "";
+
+    const systemPrompt = `Act as an expert tutor. Create exactly 5 high-quality, multiple-choice questions testing the academic topic provided by the user.${studentProfile}
 
 Requirements:
-1. Questions should test real conceptual understanding, not just trivia.
-2. Provide exactly 4 plausible options for each question.
-3. The 'answer' field must be the zero-based index of the correct option (0, 1, 2, or 3).
-4. Do NOT include any markdown formatting or extra text.
+1. Calibrate difficulty and language to suit the student's board/level above.
+2. For school boards (CBSE, ICSE, State Board) use curriculum-specific examples and standard syllabus content.
+3. For entrance exams (JEE/NEET/UPSC/GATE) make questions more application/problem-solving oriented.
+4. For university / postgraduate levels, use advanced concepts and technical terminology.
+5. Questions should test real conceptual understanding, not just trivia.
+6. Provide exactly 4 plausible options for each question.
+7. The 'answer' field must be the zero-based index of the correct option (0, 1, 2, or 3).
+8. Do NOT include any markdown formatting or extra text.
 
 Return your response as a valid JSON object with a single root key called "quiz":
 {
@@ -96,3 +111,4 @@ Return your response as a valid JSON object with a single root key called "quiz"
     );
   }
 });
+

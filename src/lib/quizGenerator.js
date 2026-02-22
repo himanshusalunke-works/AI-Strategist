@@ -7,13 +7,14 @@ import { getQuestions as getStaticQuestions } from './questionBank';
  * The Groq API key is NEVER exposed to the browser.
  *
  * @param {string} topicName
- * @param {string} topicId  (Optional, for logging)
+ * @param {string} topicId        (Optional, for logging)
+ * @param {object} userContext    (Optional) { board, study_level, university, target_exam }
  * @returns {Promise<Array>} Array of question objects
  */
-export async function generateQuizWithAI(topicName, topicId = null) {
+export async function generateQuizWithAI(topicName, topicId = null, userContext = {}) {
     try {
         const { data, error } = await supabase.functions.invoke('generate-quiz', {
-            body: { topicName, topicId }
+            body: { topicName, topicId, userContext }
         });
 
         if (error) throw error;

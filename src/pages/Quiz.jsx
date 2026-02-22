@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { topicsApi, subjectsApi, quizApi } from '../lib/api';
 import { generateQuizWithAI } from '../lib/quizGenerator';
+import { useAuth } from '../context/AuthContext';
 import {
     CheckCircle2, XCircle, ArrowRight, Trophy,
     Clock, BookOpen, ChevronRight, RotateCcw, Sparkles
@@ -11,6 +12,15 @@ import './Quiz.css';
 export default function Quiz() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
+
+    // Build user context once so every quiz call is personalised
+    const userContext = {
+        board:        user?.board        || '',
+        study_level:  user?.study_level  || '',
+        university:   user?.university   || '',
+        target_exam:  user?.target_exam  || '',
+    };
 
     // States
     const [stage, setStage] = useState('select'); // select, quiz, result
@@ -69,7 +79,7 @@ export default function Quiz() {
         setSelectedTopic(topic);
         setIsGenerating(true);
         try {
-                const qs = await generateQuizWithAI(topic.name, topic.id);
+            const qs = await generateQuizWithAI(topic.name, topic.id, userContext);
             setQuestions(qs.slice(0, 5));
             setCurrentQ(0);
             setAnswers([]);

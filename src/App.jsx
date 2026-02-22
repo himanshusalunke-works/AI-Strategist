@@ -38,9 +38,11 @@ export default function App() {
                         <Route path="/login" element={
                             <AuthRedirect><Login /></AuthRedirect>
                         } />
-                        <Route path="/register" element={
-                            <AuthRedirect><Register /></AuthRedirect>
-                        } />
+                        {/* No AuthRedirect here: after signUp(), AuthContext sets user
+                            synchronously. If we wrap Register in AuthRedirect it would
+                            immediately bounce to /dashboard before navigate('/onboarding')
+                            can fire.  The onboarding page has its own auth guard. */}
+                        <Route path="/register" element={<Register />} />
 
                         {/* Onboarding — standalone public route, handles its own auth guard */}
                         <Route path="/onboarding" element={<Onboarding />} />

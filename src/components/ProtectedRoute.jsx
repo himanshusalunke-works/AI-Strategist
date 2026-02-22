@@ -16,5 +16,10 @@ export default function ProtectedRoute({ children }) {
         return <Navigate to="/login" replace />;
     }
 
+    // Enforce onboarding for users who haven't completed it yet
+    if (!user.onboarding_complete) {
+        return <Navigate to="/onboarding" replace />;
+    }
+
     return children;
 }

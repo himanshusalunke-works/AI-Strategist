@@ -98,21 +98,19 @@ export function AuthProvider({ children }) {
             onboarding_complete: updates.onboarding_complete ?? user.onboarding_complete,
         };
 
-        // Write to profiles table
-        const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({ id: user.id, ...profileFields }, { onConflict: 'id' });
-        if (profileError) throw profileError;
-
-        // Keep auth user_metadata name in sync
-        await supabase.auth.updateUser({ data: { name: profileFields.name } });
-
-        // Optimistic local update
+        // Optimistic local update first — UI reflects changes instantly
         setUser(prev => ({
             ...prev,
             ...profileFields,
             user_metadata: { ...(prev.user_metadata || {}), name: profileFields.name },
         }));
+
+        // Fire both network calls in parallel instead of sequentially
+        const [{ error: profileError }] = await Promise.all([
+            supabase.from('profiles').upsert({ id: user.id, ...profileFields }, { onConflict: 'id' }),
+            supabase.auth.updateUser({ data: { name: profileFields.name } }),
+        ]);
+        if (profileError) throw profileError;
     };
 
     return (

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Brain, Mail, Lock, ArrowRight } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { Brain, Mail, Lock, ArrowRight, Sun, Moon, Home } from 'lucide-react';
 import './Auth.css';
 
 export default function Login() {
@@ -31,12 +32,24 @@ export default function Login() {
         }
     };
 
+    const { theme, toggleTheme } = useTheme();
+
     return (
         <div className="auth-page">
             <div className="auth-bg-shapes">
                 <div className="auth-shape auth-shape-1"></div>
                 <div className="auth-shape auth-shape-2"></div>
                 <div className="auth-shape auth-shape-3"></div>
+            </div>
+
+            {/* Top-right controls */}
+            <div className="auth-top-controls">
+                <Link to="/" className="auth-ctrl-btn" title="Back to Home">
+                    <Home size={18} />
+                </Link>
+                <button className="auth-ctrl-btn" onClick={toggleTheme} title="Toggle theme">
+                    {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
             </div>
 
             <div className="auth-container animate-scale">

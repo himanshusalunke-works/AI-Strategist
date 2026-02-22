@@ -75,19 +75,16 @@ export default function Onboarding() {
 
     const handleFinish = async () => {
         setSaving(true);
-        try {
-            await updateProfile({ ...form, onboarding_complete: true });
-        } catch (err) {
-            console.error('Onboarding save error:', err);
-        } finally {
-            setSaving(false);
-            navigate('/dashboard', { replace: true });
-        }
+        // Navigate right after the optimistic update lands (no waiting on network)
+        updateProfile({ ...form, onboarding_complete: true })
+            .catch(err => console.error('Onboarding save error:', err))
+            .finally(() => setSaving(false));
+        navigate('/dashboard', { replace: true });
     };
 
     const handleSkip = async () => {
-        // Save whatever was filled so far, mark onboarding done
-        try { await updateProfile({ ...form, onboarding_complete: true }); } catch (_) {}
+        // Save whatever was filled so far, mark onboarding done (fire and forget)
+        updateProfile({ ...form, onboarding_complete: true }).catch(() => {});
         navigate('/dashboard', { replace: true });
     };
 

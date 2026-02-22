@@ -38,6 +38,21 @@ export function getAvatarGradient(letter) {
     return `linear-gradient(135deg, ${GRADIENTS[i][0]}, ${GRADIENTS[i][1]})`;
 }
 
+// Defined at MODULE level — if it were inside Settings, React would treat it
+// as a new component type on every render and unmount/remount the input,
+// dropping focus after each keystroke.
+function Field({ label, field, type = 'text', placeholder, children, editing, draft, onChange }) {
+    return (
+        <div className="settings-field">
+            <label>{label}</label>
+            {editing
+                ? (children ?? <input className="input-field" type={type} value={draft[field]} onChange={onChange(field)} placeholder={placeholder} />)
+                : <div className="settings-readonly">{draft[field] || <span className="settings-placeholder">Not set</span>}</div>
+            }
+        </div>
+    );
+}
+
 export default function Settings() {
     const { user, updateProfile } = useAuth();
     const meta = user?.user_metadata || {};
@@ -83,17 +98,6 @@ export default function Settings() {
             setIsSaving(false);
         }
     };
-
-    // Unified read/edit field renderer
-    const Field = ({ label, field, type = 'text', placeholder, children }) => (
-        <div className="settings-field">
-            <label>{label}</label>
-            {editing
-                ? (children ?? <input className="input-field" type={type} value={draft[field]} onChange={setField(field)} placeholder={placeholder} />)
-                : <div className="settings-readonly">{form[field] || <span className="settings-placeholder">Not set</span>}</div>
-            }
-        </div>
-    );
 
     return (
         <div className="settings-page">
@@ -143,7 +147,8 @@ export default function Settings() {
                     </div>
 
                     <div className="settings-grid-2">
-                        <Field label="Full Name" field="name" placeholder="Your full name" />
+                        <Field label="Full Name" field="name" placeholder="Your full name"
+                            editing={editing} draft={draft} onChange={setField} />
                         <div className="settings-field">
                             <label>Email</label>
                             <div className="settings-readonly settings-readonly-muted">{user?.email}</div>
@@ -153,7 +158,8 @@ export default function Settings() {
                             <GraduationCap size={14} /> Academic Details
                         </div>
 
-                        <Field label="Board / Curriculum" field="board">
+                        <Field label="Board / Curriculum" field="board"
+                            editing={editing} draft={draft} onChange={setField}>
                             {editing && (
                                 <select className="input-field" value={draft.board} onChange={setField('board')}>
                                     <option value="">Select board…</option>
@@ -162,9 +168,11 @@ export default function Settings() {
                             )}
                         </Field>
 
-                        <Field label="University / Institution" field="university" placeholder="e.g. Delhi University" />
+                        <Field label="University / Institution" field="university" placeholder="e.g. Delhi University"
+                            editing={editing} draft={draft} onChange={setField} />
 
-                        <Field label="Study Level" field="study_level">
+                        <Field label="Study Level" field="study_level"
+                            editing={editing} draft={draft} onChange={setField}>
                             {editing && (
                                 <select className="input-field" value={draft.study_level} onChange={setField('study_level')}>
                                     <option value="">Select level…</option>
@@ -173,10 +181,13 @@ export default function Settings() {
                             )}
                         </Field>
 
-                        <Field label="Target Exam" field="target_exam" placeholder="e.g. JEE Advanced, NEET" />
+                        <Field label="Target Exam" field="target_exam" placeholder="e.g. JEE Advanced, NEET"
+                            editing={editing} draft={draft} onChange={setField} />
 
-                        <Field label="Target Year" field="target_year" type="number" placeholder="e.g. 2026" />
-                        <Field label="Daily Study Hours" field="daily_hours" type="number" placeholder="e.g. 4" />
+                        <Field label="Target Year" field="target_year" type="number" placeholder="e.g. 2026"
+                            editing={editing} draft={draft} onChange={setField} />
+                        <Field label="Daily Study Hours" field="daily_hours" type="number" placeholder="e.g. 4"
+                            editing={editing} draft={draft} onChange={setField} />
 
                         <div className="settings-field settings-field-full">
                             <label>Preferred Learning Style</label>
