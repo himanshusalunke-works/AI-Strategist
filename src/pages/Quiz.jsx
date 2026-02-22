@@ -69,8 +69,7 @@ export default function Quiz() {
         setSelectedTopic(topic);
         setIsGenerating(true);
         try {
-            const apiKey = import.meta.env.VITE_GROQ_API_KEY || '';
-            const qs = await generateQuizWithAI(topic.name, apiKey, topic.id);
+                const qs = await generateQuizWithAI(topic.name, topic.id);
             setQuestions(qs.slice(0, 5));
             setCurrentQ(0);
             setAnswers([]);

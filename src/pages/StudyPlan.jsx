@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { subjectsApi, topicsApi, schedulesApi } from "../lib/api";
-import {
-  generateScheduleLocally,
-  generateScheduleWithAI,
-} from "../lib/scheduleGenerator";
+import { generateScheduleWithAI } from "../lib/scheduleGenerator";
 import { getDaysUntilExam } from "../lib/readiness";
 import {
   Calendar,
@@ -65,20 +62,12 @@ export default function StudyPlan() {
     if (!selectedSubject) return;
     setLoading(true);
     try {
-      const apiKey = import.meta.env.VITE_GROQ_API_KEY || "";
-      const scheduleData = apiKey
-        ? await generateScheduleWithAI(
-            topics,
-            selectedSubject.exam_date,
-            selectedSubject.daily_study_hours,
-            apiKey,
-            selectedSubject.id
-          )
-        : generateScheduleLocally(
-            topics,
-            selectedSubject.exam_date,
-            selectedSubject.daily_study_hours,
-          );
+      const scheduleData = await generateScheduleWithAI(
+        topics,
+        selectedSubject.exam_date,
+        selectedSubject.daily_study_hours,
+        selectedSubject.id
+      );
 
       await schedulesApi.save({
         subject_id: selectedSubject.id,

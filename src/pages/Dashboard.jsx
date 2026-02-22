@@ -47,7 +47,7 @@ export default function Dashboard() {
         try {
             const subTopics = await topicsApi.getBySubject(subjectId);
             setTopics(subTopics);
-            setReadiness(calculateReadiness(subTopics));
+            setReadiness(calculateReadiness(subTopics, selectedSubject.exam_date));
             const sched = await schedulesApi.getBySubject(subjectId);
             setSchedule(sched?.schedule_data || null);
         } catch (err) {
@@ -174,6 +174,9 @@ export default function Dashboard() {
                         daysUntil={daysUntil}
                         coverage={readiness?.coverage || 0}
                         avgAccuracy={readiness?.avgAccuracy || 0}
+                        recencyBonus={readiness?.recencyBonus || 0}
+                        severityPenalty={readiness?.severityPenalty || 0}
+                        urgency={readiness?.urgency || null}
                     />
                     <WeakTopicsCard weakTopics={readiness?.weakTopics || []} />
                 </div>

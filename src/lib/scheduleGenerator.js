@@ -1,11 +1,12 @@
 /**
  * AI Schedule Generator
- * Constructs prompt, calls AI API, validates response
+ * Constructs prompt, calls Supabase Edge Function → Groq (server-side), validates response.
+ * The Groq API key is NEVER exposed to the browser.
  */
 
-import { aiLogsApi } from './api';
+import { supabase } from './supabase';
 
-// Fallback schedule generator (when no API key is available)
+// Fallback schedule generator (when edge function is unavailable)
 export function generateScheduleLocally(topics, examDate, dailyHours) {
     const daysUntil = Math.max(1, Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)));
     const scheduleDays = Math.min(daysUntil, 7); // Plan for up to 7 days
@@ -60,77 +61,28 @@ export function generateScheduleLocally(topics, examDate, dailyHours) {
     return schedule;
 }
 
-// AI-powered schedule generation (requires API key)
-export async function generateScheduleWithAI(topics, examDate, dailyHours, apiKey, subjectId = null) {
-    if (!apiKey) {
-        // Fall back to local generation
-        return generateScheduleLocally(topics, examDate, dailyHours);
-    }
-
+/**
+ * AI-powered schedule generation via Supabase Edge Function.
+ * The Groq key never leaves the server.
+ *
+ * @param {Array}  topics          - Array of topic objects with name & mastery_score
+ * @param {string} examDate        - ISO exam date string
+ * @param {number} dailyHours      - Hours available per day
+ * @param {string|null} subjectId  - Optional, for AI logging
+ * @returns {Promise<Object>}       - Schedule object keyed by "Day N"
+ */
+export async function generateScheduleWithAI(topics, examDate, dailyHours, subjectId = null) {
     try {
-        const Groq = (await import('groq-sdk')).default;
-        const groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
-
-        const daysUntil = Math.max(1, Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)));
-        const scheduleDays = Math.min(daysUntil, 7);
-
-        const topicData = topics.map(t => `- ${t.name}: mastery ${t.mastery_score}%`).join('\n');
-
-        const systemPrompt = `You are an expert study planner. Create a ${scheduleDays}-day study schedule for a student. Return ONLY valid JSON in the exact format requested.
-
-Constraints:
-- Exam is in ${daysUntil} days
-- Student can study ${dailyHours} hours/day (${dailyHours * 60} minutes)
-- Prioritize weak topics (< 60% mastery)
-- Balance workload across days
-- Give more time to topics with lowest mastery
-- For the "reason" field, you MUST categorize and explain based on mastery:
-  * < 40%: "Critical: Very low mastery. Needs intensive practice."
-  * < 60%: "High priority: Below passing threshold. Focus on fundamentals."
-  * < 80%: "Moderate: Good progress but room for improvement."
-  * >= 80%: "Review: Strong mastery. Light revision to maintain knowledge."
-  Append a brief tip specific to the topic to these categories.
-
-Return EXACTLY this JSON structure:
-{
-  "Day 1": [
-    {"topic": "Topic Name", "duration": 60, "reason": "Explanation according to mastery score"}
-  ]
-}
-Each day's total duration must not exceed ${dailyHours * 60} minutes.`;
-
-        const userPrompt = `Study Data:\n${topicData}\n\nGenerate the JSON schedule.`;
-
-        const completion = await groq.chat.completions.create({
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
-            ],
-            model: "llama-3.3-70b-versatile",
-            response_format: { type: "json_object" }
+        const { data, error } = await supabase.functions.invoke('generate-schedule', {
+            body: { topics, examDate, dailyHours, subjectId }
         });
 
-        const text = completion.choices[0]?.message?.content || "";
+        if (error) throw error;
+        if (!data?.schedule) throw new Error('Edge function returned no schedule');
 
-        // Extract JSON from response
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error('No valid JSON in AI response');
-
-        const schedule = JSON.parse(jsonMatch[0]);
-
-        // Validate structure
-        if (typeof schedule !== 'object') throw new Error('Invalid schedule format');
-
-        // Log to database asynchronously without waiting to avoid slowing down user
-        aiLogsApi.insert({
-            subject_id: subjectId,
-            prompt_used: prompt,
-            ai_output: schedule
-        }).catch(err => console.error("Failed async AI log insert:", err));
-
-        return schedule;
+        return data.schedule;
     } catch (error) {
-        console.error('AI generation failed, using local fallback:', error);
+        console.error('AI schedule generation failed, using local fallback:', error);
         return generateScheduleLocally(topics, examDate, dailyHours);
     }
 }

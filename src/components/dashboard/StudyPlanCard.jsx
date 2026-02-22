@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { schedulesApi } from '../../lib/api';
-import { generateScheduleLocally, generateScheduleWithAI } from '../../lib/scheduleGenerator';
+import { generateScheduleWithAI } from '../../lib/scheduleGenerator';
 import { Sparkles, RefreshCw, ChevronDown, ChevronUp, Clock, BookOpen } from 'lucide-react';
 import './StudyPlanCard.css';
 
@@ -25,10 +25,7 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
         setLoading(true);
         setApiError(null);
         try {
-            const apiKey = import.meta.env.VITE_GROQ_API_KEY || '';
-            const scheduleData = apiKey
-                ? await generateScheduleWithAI(topics, subject.exam_date, subject.daily_study_hours, apiKey, subject.id)
-                : generateScheduleLocally(topics, subject.exam_date, subject.daily_study_hours);
+            const scheduleData = await generateScheduleWithAI(topics, subject.exam_date, subject.daily_study_hours, subject.id);
 
             await schedulesApi.save({
                 subject_id: subject.id,
@@ -42,7 +39,7 @@ export default function StudyPlanCard({ schedule, subject, topics, onRefresh }) 
                 setApiError("Rate limit exceeded. Please wait a moment before trying again.");
                 setCooldownTime(10); // 10s backoff for rate limits
             } else {
-                setApiError("Failed to generate schedule. Please check your API key.");
+                setApiError("Failed to generate schedule. Please try again.");
                 setCooldownTime(5);
             }
         } finally {
