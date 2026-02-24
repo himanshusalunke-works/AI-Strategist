@@ -2,9 +2,10 @@ import { Link } from 'react-router-dom';
 import { AlertTriangle, Flame, ArrowRight, PartyPopper } from 'lucide-react';
 import './WeakTopicsCard.css';
 
-export default function WeakTopicsCard({ weakTopics }) {
+export default function WeakTopicsCard({ weakTopics = [] }) {
     const criticalTopics = weakTopics.filter(t => t.status === 'critical');
     const weakOnly       = weakTopics.filter(t => t.status === 'weak');
+
 
     return (
         <div className="card weak-topics-card animate-fade-in stagger-3">

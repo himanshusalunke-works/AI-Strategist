@@ -117,8 +117,9 @@ Each day's total duration must not exceed ${dailyHours * 60} minutes.`;
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    console.error("Function error:", err);
     return new Response(
-      JSON.stringify({ error: "Internal server error", detail: String(err) }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -90,7 +90,17 @@ Return your response as a valid JSON object with a single root key called "quiz"
 
     const groqData = await groqResponse.json();
     const text = groqData.choices?.[0]?.message?.content ?? "";
-    const parsedJson = JSON.parse(text);
+
+    let parsedJson: { quiz?: unknown };
+    try {
+      parsedJson = JSON.parse(text);
+    } catch (parseErr) {
+      return new Response(
+        JSON.stringify({ error: "Invalid quiz format from Groq", detail: String(parseErr) }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const quiz = parsedJson.quiz;
 
     if (!Array.isArray(quiz) || quiz.length === 0) {

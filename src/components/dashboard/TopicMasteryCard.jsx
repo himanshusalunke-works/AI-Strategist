@@ -88,7 +88,10 @@ export default function TopicMasteryCard({ topics }) {
                 })}
             </div>
 
-            <Link to="/quiz" className="mastery-cta">
+            <Link
+                to={`/quiz?topicId=${encodeURIComponent(sorted[0].id)}&topicName=${encodeURIComponent(sorted[0].name)}`}
+                className="mastery-cta"
+            >
                 Practice weak topics <ArrowRight size={13} />
             </Link>
         </div>

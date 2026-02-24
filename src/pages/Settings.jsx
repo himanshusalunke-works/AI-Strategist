@@ -55,21 +55,20 @@ function Field({ label, field, type = 'text', placeholder, children, editing, dr
 
 export default function Settings() {
     const { user, updateProfile } = useAuth();
-    const meta = user?.user_metadata || {};
 
     const [editing, setEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
     const [form, setForm] = useState({
-        name: meta.name || '',
-        board: meta.board || '',
-        university: meta.university || '',
-        study_level: meta.study_level || '',
-        target_exam: meta.target_exam || '',
-        target_year: meta.target_year || '',
-        learning_style: meta.learning_style || '',
-        daily_hours: meta.daily_hours || '',
+        name:           user?.name           || '',
+        board:          user?.board          || '',
+        university:     user?.university     || '',
+        study_level:    user?.study_level    || '',
+        target_exam:    user?.target_exam    || '',
+        target_year:    user?.target_year    || '',
+        learning_style: user?.learning_style || '',
+        daily_hours:    user?.daily_hours    || '',
     });
     const [draft, setDraft] = useState({ ...form });
 
