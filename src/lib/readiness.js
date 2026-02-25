@@ -42,6 +42,7 @@ const RECENCY_BONUS_CAP    = 15; // maximum bonus
  * @returns {Object}
  */
 export function calculateReadiness(topics, examDate = null) {
+    const daysUntilExam = examDate ? getDaysUntilExam(examDate) : null;
     if (!topics || topics.length === 0) {
         return {
             readinessScore:  0,
@@ -51,7 +52,7 @@ export function calculateReadiness(topics, examDate = null) {
             avgAccuracy:     0,
             recencyBonus:    0,
             severityPenalty: 0,
-            urgency:         examDate ? computeUrgency(getDaysUntilExam(examDate), 0) : null,
+            urgency:         computeUrgency(daysUntilExam, 0),
         };
     }
 
@@ -124,7 +125,7 @@ export function calculateReadiness(topics, examDate = null) {
         avgAccuracy:     Math.round(weightedMastery),  // attempt-weighted avg
         recencyBonus,
         severityPenalty: Math.round(severityPenalty),
-        urgency: examDate ? computeUrgency(getDaysUntilExam(examDate), readinessScore) : null,
+        urgency: computeUrgency(daysUntilExam, readinessScore),
     };
 }
 

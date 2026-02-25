@@ -269,7 +269,8 @@
 .ob-save-error {
     color: var(--color-red);
     font-size: 0.8rem;
-    max-width: 260px;
+    margin-top: -8px;
+    margin-bottom: -4px;
 }
 
 /* ---- Responsive ---- */

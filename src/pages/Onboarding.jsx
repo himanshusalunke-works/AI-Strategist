@@ -257,9 +257,14 @@ export default function Onboarding() {
                     </div>
                 )}
 
+                {saveError && (
+                    <p className="ob-save-error" role="alert" aria-live="polite">
+                        {saveError}
+                    </p>
+                )}
+
                 {/* Footer */}
                 <div className="ob-footer">
-                    {saveError && <p className="ob-save-error">{saveError}</p>}
                     <button type="button" className="ob-skip-btn" onClick={handleSkip}>
                         Skip for now
                     </button>
