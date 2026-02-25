@@ -119,9 +119,13 @@
 .mastery-percent {
     font-size: 0.9rem;
     font-weight: 800;
-    min-width: 36px;
+    min-width: 48px;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: flex-end;
     text-align: right;
     font-family: var(--font-heading);
+    font-variant-numeric: tabular-nums;
 }
 
 /* Progress bar */
