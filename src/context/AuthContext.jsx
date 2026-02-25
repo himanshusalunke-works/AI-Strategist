@@ -116,17 +116,33 @@ export function AuthProvider({ children }) {
             user_metadata: { ...(prev.user_metadata || {}), name: profileFields.name },
         }));
 
-        const [profileRes, authRes] = await Promise.all([
-            supabase.from('profiles').upsert({ id: user.id, ...profileFields }, { onConflict: 'id' }),
-            supabase.auth.updateUser({ data: { name: profileFields.name } }),
-        ]);
-
+        const profileRes = await supabase
+            .from('profiles')
+            .upsert({ id: user.id, ...profileFields }, { onConflict: 'id' });
         const profileError = profileRes?.error || null;
-        const authError = authRes?.error || null;
-
-        if (profileError || authError) {
+        if (profileError) {
             setUser(prevUser);
-            throw (profileError || authError);
+            throw profileError;
+        }
+
+        const authRes = await supabase.auth.updateUser({ data: { name: profileFields.name } });
+        const authError = authRes?.error || null;
+        if (authError) {
+            // Profile row was already written. Pull canonical state from server
+            // instead of reverting purely to stale local snapshot.
+            try {
+                const [{ data: { session } }, profileFetch] = await Promise.all([
+                    supabase.auth.getSession(),
+                    supabase.from('profiles').select('*').eq('id', user.id).single(),
+                ]);
+
+                const authUser = session?.user || prevUser;
+                const canonicalProfile = profileFetch?.data || {};
+                setUser(buildUser(authUser, canonicalProfile));
+            } catch {
+                setUser(prevUser);
+            }
+            throw authError;
         }
     };
 

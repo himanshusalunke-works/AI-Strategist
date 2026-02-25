@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
 
     const { topicName, userContext = {} } = body || {};
 
-    if (!topicName || typeof topicName !== "string") {
+    if (!topicName || typeof topicName !== "string" || topicName.trim().length === 0) {
       return jsonResponse({ error: "Missing required field: topicName" }, 400);
     }
 

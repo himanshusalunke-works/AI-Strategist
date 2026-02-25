@@ -227,8 +227,8 @@ export const quizApi = {
             topic_id,
             user_id: userId,
             accuracy,
-            time_taken_seconds: time_taken_seconds || null,
-            questions_data: questions_data || null,   // full Q&A snapshot
+            time_taken_seconds: time_taken_seconds ?? null,
+            questions_data: questions_data ?? null,   // full Q&A snapshot
         };
 
         let attempt;
@@ -248,7 +248,7 @@ export const quizApi = {
                     topic_id,
                     user_id: userId,
                     accuracy,
-                    time_taken_seconds: time_taken_seconds || null,
+                    time_taken_seconds: time_taken_seconds ?? null,
                 })
                 .select()
                 .single());
