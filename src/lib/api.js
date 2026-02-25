@@ -223,17 +223,36 @@ export const quizApi = {
     async recordAttempt({ topic_id, accuracy, time_taken_seconds, questions_data }) {
         const userId = await getUserId();
 
-        const { data: attempt, error } = await supabase
+        const payload = {
+            topic_id,
+            user_id: userId,
+            accuracy,
+            time_taken_seconds: time_taken_seconds || null,
+            questions_data: questions_data || null,   // full Q&A snapshot
+        };
+
+        let attempt;
+        let error;
+
+        ({ data: attempt, error } = await supabase
             .from('quiz_attempts')
-            .insert({
-                topic_id,
-                user_id: userId,
-                accuracy,
-                time_taken_seconds: time_taken_seconds || null,
-                questions_data: questions_data || null,   // full Q&A snapshot
-            })
+            .insert(payload)
             .select()
-            .single();
+            .single());
+
+        // Backward compatibility: older DB schema may not have questions_data column yet.
+        if (error && String(error.message || '').toLowerCase().includes('questions_data')) {
+            ({ data: attempt, error } = await supabase
+                .from('quiz_attempts')
+                .insert({
+                    topic_id,
+                    user_id: userId,
+                    accuracy,
+                    time_taken_seconds: time_taken_seconds || null,
+                })
+                .select()
+                .single());
+        }
         if (error) throw error;
 
         const updatedTopic = await topicsApi.updateMastery(topic_id, accuracy);

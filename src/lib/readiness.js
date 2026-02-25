@@ -161,6 +161,7 @@ export function getStatusLabel(mastery) {
 export function getDaysUntilExam(examDate) {
     const now  = new Date();
     const exam = new Date(examDate);
+    if (Number.isNaN(exam.getTime())) return 0;
     const diffDays = Math.ceil((exam.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     return Math.max(0, diffDays);
 }

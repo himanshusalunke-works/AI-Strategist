@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
-// Defined outside component — no recreation on every render (Bug 7 fix)
+// Defined outside component - no recreation on every render.
 async function fetchProfile(userId) {
     const { data } = await supabase
         .from('profiles')
@@ -45,7 +45,7 @@ export function AuthProvider({ children }) {
 
                 // USER_UPDATED fires when supabase.auth.updateUser() is called (e.g. from
                 // updateProfile). We already applied an optimistic setUser in updateProfile,
-                // so skip the expensive fetchProfile round-trip here — just sync auth metadata.
+                // so skip the profile fetch round-trip here and sync auth metadata only.
                 if (event === 'USER_UPDATED') {
                     setUser(prev => prev ? {
                         ...prev,
@@ -56,7 +56,7 @@ export function AuthProvider({ children }) {
                     return;
                 }
 
-                // INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED, etc. — fetch full profile
+                // INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED, etc. - fetch full profile.
                 const profile = await fetchProfile(session.user.id);
                 setUser(buildUser(session.user, profile));
                 setLoading(false);
@@ -73,9 +73,8 @@ export function AuthProvider({ children }) {
             options: { data: { name } }
         });
         if (error) return { error };
-        // Bug 5 fix: don't fetch profile right after signup — DB trigger may not have
-        // run yet. Build user from auth response; onAuthStateChange will hydrate the
-        // full profile once the trigger completes and the session fires SIGNED_IN.
+
+        // Do not fetch profile immediately after signup; DB trigger may not have run yet.
         if (data.user) {
             setUser(buildUser(data.user, { name }));
         }
@@ -85,14 +84,10 @@ export function AuthProvider({ children }) {
     const signIn = async ({ email, password }) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) return { error };
-        // onAuthStateChange fires SIGNED_IN and handles setUser — no need to call it here.
-        // But we return user so callers can react immediately.
         return { user: data.user };
     };
 
     const signOut = async () => {
-        // Bug 4 fix: don't manually call setUser(null).
-        // onAuthStateChange fires SIGNED_OUT → sets user to null automatically.
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
     };
@@ -112,19 +107,27 @@ export function AuthProvider({ children }) {
             onboarding_complete: updates.onboarding_complete ?? user.onboarding_complete,
         };
 
-        // Optimistic local update first — UI reflects changes instantly
+        const prevUser = user;
+
+        // Optimistic local update first so UI updates immediately.
         setUser(prev => ({
             ...prev,
             ...profileFields,
             user_metadata: { ...(prev.user_metadata || {}), name: profileFields.name },
         }));
 
-        // Fire both network calls in parallel instead of sequentially
-        const [{ error: profileError }] = await Promise.all([
+        const [profileRes, authRes] = await Promise.all([
             supabase.from('profiles').upsert({ id: user.id, ...profileFields }, { onConflict: 'id' }),
             supabase.auth.updateUser({ data: { name: profileFields.name } }),
         ]);
-        if (profileError) throw profileError;
+
+        const profileError = profileRes?.error || null;
+        const authError = authRes?.error || null;
+
+        if (profileError || authError) {
+            setUser(prevUser);
+            throw (profileError || authError);
+        }
     };
 
     return (

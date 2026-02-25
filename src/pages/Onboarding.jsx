@@ -41,6 +41,7 @@ export default function Onboarding() {
 
     const [step, setStep]     = useState(0);
     const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState('');
     const [form, setForm]     = useState({
         board:          '',
         university:     '',
@@ -75,17 +76,30 @@ export default function Onboarding() {
 
     const handleFinish = async () => {
         setSaving(true);
-        // Navigate right after the optimistic update lands (no waiting on network)
-        updateProfile({ ...form, onboarding_complete: true })
-            .catch(err => console.error('Onboarding save error:', err))
-            .finally(() => setSaving(false));
-        navigate('/dashboard', { replace: true });
+        setSaveError('');
+        try {
+            await updateProfile({ ...form, onboarding_complete: true });
+            navigate('/dashboard', { replace: true });
+        } catch (err) {
+            console.error('Onboarding save error:', err);
+            setSaveError('Failed to save onboarding data. Please try again.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleSkip = async () => {
-        // Save whatever was filled so far, mark onboarding done (fire and forget)
-        updateProfile({ ...form, onboarding_complete: true }).catch(() => {});
-        navigate('/dashboard', { replace: true });
+        setSaving(true);
+        setSaveError('');
+        try {
+            await updateProfile({ ...form, onboarding_complete: true });
+            navigate('/dashboard', { replace: true });
+        } catch (err) {
+            console.error('Onboarding skip save error:', err);
+            setSaveError('Could not complete onboarding right now. Please try again.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     // Show a spinner while auth resolves (prevents flash before redirect)
@@ -245,6 +259,7 @@ export default function Onboarding() {
 
                 {/* Footer */}
                 <div className="ob-footer">
+                    {saveError && <p className="ob-save-error">{saveError}</p>}
                     <button type="button" className="ob-skip-btn" onClick={handleSkip}>
                         Skip for now
                     </button>

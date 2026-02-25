@@ -266,6 +266,11 @@
 .ob-skip-btn:hover {
     color: var(--text-secondary);
 }
+.ob-save-error {
+    color: var(--color-red);
+    font-size: 0.8rem;
+    max-width: 260px;
+}
 
 /* ---- Responsive ---- */
 @media (max-width: 640px) {

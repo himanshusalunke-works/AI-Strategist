@@ -47,7 +47,8 @@ BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, pg_temp;
 
 CREATE OR REPLACE TRIGGER profiles_updated_at
   BEFORE UPDATE ON public.profiles
@@ -66,7 +67,8 @@ BEGIN
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, pg_temp;
 
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -117,6 +119,7 @@ CREATE TABLE IF NOT EXISTS quiz_attempts (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   accuracy INTEGER NOT NULL CHECK (accuracy >= 0 AND accuracy <= 100),
   time_taken_seconds INTEGER,
+  questions_data JSONB,
   attempted_at TIMESTAMPTZ DEFAULT NOW()
 );
 
