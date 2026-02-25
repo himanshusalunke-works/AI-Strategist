@@ -69,27 +69,32 @@
 }
 
 body.dark-theme {
-  --bg-page: #0B1120;
-  --bg-card: #1A2332;
-  --bg-sidebar: #080E1A;
-  --bg-sidebar-hover: #1A2332;
+  --bg-page: #121a2b;
+  --bg-card: #1f2a3d;
+  --bg-sidebar: #111827;
+  --bg-sidebar-hover: #223047;
   --bg-sidebar-active: rgba(99, 102, 241, 0.2);
 
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
-  --text-tertiary: #64748B;
-  --text-inverse: #020617;
-  --text-sidebar: #94A3B8;
+  --text-primary: #F8FAFC;
+  --text-secondary: #B2BFD1;
+  --text-tertiary: #8393AA;
+  --text-inverse: #0B1220;
+  --text-sidebar: #A7B4C8;
   --text-sidebar-active: #F8FAFC;
 
-  --border-light: #263044;
-  --border-card: #2D3B52;
+  --border-light: #334155;
+  --border-card: #3A4A63;
 
   /* Deeper shadows for dark mode card differentiation */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
   --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
   --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+body.dark-theme .btn-ghost:hover {
+  background: rgba(148, 163, 184, 0.14);
+  color: var(--text-primary);
 }
 
 /* ---- Reset & Base ---- */

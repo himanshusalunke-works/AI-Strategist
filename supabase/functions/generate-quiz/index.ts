@@ -130,7 +130,8 @@ Return your response as a valid JSON object with a single root key called "quiz"
 
     if (!groqResponse.ok) {
       const errText = await groqResponse.text();
-      return jsonResponse({ error: "Groq API call failed", detail: errText }, 502);
+      console.error("Groq API call failed", { status: groqResponse.status, errText });
+      return jsonResponse({ error: "Groq API call failed" }, 502);
     }
 
     const groqData = await groqResponse.json();
@@ -139,8 +140,8 @@ Return your response as a valid JSON object with a single root key called "quiz"
     let parsedJson;
     try {
       parsedJson = JSON.parse(text);
-    } catch (parseErr) {
-      return jsonResponse({ error: "Invalid quiz format from Groq", detail: String(parseErr) }, 502);
+    } catch {
+      return jsonResponse({ error: "Invalid quiz format from Groq" }, 502);
     }
 
     const quiz = Array.isArray(parsedJson?.quiz)
@@ -153,6 +154,7 @@ Return your response as a valid JSON object with a single root key called "quiz"
 
     return jsonResponse({ quiz }, 200);
   } catch (err) {
-    return jsonResponse({ error: "Internal server error", detail: String(err) }, 500);
+    console.error("generate-quiz function error", err);
+    return jsonResponse({ error: "Internal server error" }, 500);
   }
 });
